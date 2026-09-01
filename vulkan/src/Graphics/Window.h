@@ -18,14 +18,16 @@ public:
     ~Window();
     Window(const Window&)            = delete;
     Window& operator=(const Window&) = delete;
-    
-    void    StartFrame();
-    void    EndFrame();
-    bool    ShouldClose() { return glfwWindowShouldClose(m_window); };
+
+    void StartFrame();
+    void EndFrame();
+    bool ShouldClose() { return glfwWindowShouldClose(m_window); }
+    void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
     void updateFPS();
 
     GLFWwindow* getWindow();
+    VkExtent2D  getExtent() { return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) }; }
 };
 
 #endif

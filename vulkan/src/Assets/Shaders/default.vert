@@ -1,6 +1,6 @@
 #version 460 core
 
-layout(location = 0) in vec3 aPos;
+// layout(location = 0) in vec3 aPos;
 
 vec2 positions[3] = vec2[](
     vec2(0.0, -0.5),

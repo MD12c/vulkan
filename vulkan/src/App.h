@@ -1,21 +1,41 @@
 #ifndef APP_CLASS_H
 #define APP_CLASS_H
 
+#include <memory>
+#include <vector>
+
 #include "Graphics/Window.h"
 #include "Graphics/Pipeline.h"
+#include "Graphics/Device.h"
+#include "Graphics/Swapchain.h"
 
 class App
 {
 private:
-    int         width  = 1920;
-    int         height = 1080;
-    const char* name   = "VK Tutorial";
-    Window      window;
-    Pipeline    pipeline;
+    int         width        = 1920;
+    int         height       = 1080;
+    const char* name         = "VK Tutorial";
+    float       windowRGB[3] = {
+        0.7f, 0.7f, 0.7f
+    };
+
+    Window                       window;
+    lve::MyEngineDevice          device;
+    lve::MyEngineSwapChain       swapchain;
+    std::unique_ptr<Pipeline>    pipeline;
+    VkPipelineLayout             pipelineLayout;
+    std::vector<VkCommandBuffer> commandBuffers;
+
+    void createPipeline();
+    void createPipelineLayout();
+    void createCommandBuffers();
+    void drawFrame();
 
 public:
     App();
     ~App();
+    App(const App&)            = delete;
+    App& operator=(const App&) = delete;
 
     void run();
 };

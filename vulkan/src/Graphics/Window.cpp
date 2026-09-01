@@ -66,6 +66,12 @@ void Window::updateFPS()
     }
 }
 
+void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
+{
+    if (glfwCreateWindowSurface(instance, m_window, nullptr, surface) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create window surface");
+}
+
 GLFWwindow* Window::getWindow()
 {
     return m_window;
