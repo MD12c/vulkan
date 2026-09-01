@@ -1,17 +1,13 @@
-#version 330 core
+#version 460 core
 
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 aTexCoord;
+layout(location = 0) in vec3 aPos;
 
-out vec3 color;
-out vec2 TexCoord;
+vec2 positions[3] = vec2[](
+    vec2(0.0, -0.5),
+    vec2(0.5, 0.5),
+    vec2(-0.5, 0.5));
 
-uniform vec3 Color;
-uniform mat4 translated;
-uniform mat4 projection;
-
-void main(){
-	gl_Position = projection * translated * vec4(aPos, 1.0f);
-	color = Color;
-	TexCoord = aTexCoord;
+void main()
+{
+    gl_Position = vec4(positions[gl_VertexIndex], 0.0f, 1.0f);
 }
