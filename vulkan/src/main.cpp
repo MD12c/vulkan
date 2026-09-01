@@ -1,36 +1,18 @@
 ﻿#include "main.h"
-int width  = 1920;
-int height = 1080;
-
-GLFWwindow* window = NULL;
-
-void GLFW_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if ((key == GLFW_KEY_ESCAPE) && (action == GLFW_PRESS))
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
+#include "Globals.h"
+#include "Graphics/Window.h"
 
 int main()
 {
-    if (!glfwInit() || !glfwVulkanSupported())
-        return 1;
+    Window window(1920, 1080, "VK Tutorial");
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-    window = glfwCreateWindow(width, height, "Tutorial 01", NULL, NULL);
-    if (!window)
+    while (!window.ShouldClose())
     {
-        glfwTerminate();
-        exit(EXIT_FAILURE);
+        window.StartFrame();
+        window.updateFPS();
+
+        window.EndFrame();
     }
-
-    glfwSetKeyCallback(window, GLFW_KeyCallback);
-
-    while (!glfwWindowShouldClose(window))
-        glfwPollEvents();
-
-    glfwTerminate();
 
     return 0;
 }

@@ -1,4 +1,5 @@
-﻿add_executable(${PROJECT_NAME} "src/main.cpp" "src/main.h")
+﻿add_executable(${PROJECT_NAME} src/main.cpp src/main.h src/Graphics/Window.cpp
+                               src/Graphics/Window.h src/Globals.h)
 
 message(
   STATUS "Shader source dir: ${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Shaders")
