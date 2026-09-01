@@ -11,18 +11,21 @@ private:
     GLFWwindow* m_window = nullptr;
     int         width;
     int         height;
-    std::string name;
+    const char* name;
 
 public:
-    Window(int width, int height, std::string windowName);
-    void StartFrame();
-    void EndFrame();
-    bool ShouldClose() { return glfwWindowShouldClose(m_window); };
+    Window(int width, int height, const char* name);
+    ~Window();
+    Window(const Window&)            = delete;
+    Window& operator=(const Window&) = delete;
+    
+    void    StartFrame();
+    void    EndFrame();
+    bool    ShouldClose() { return glfwWindowShouldClose(m_window); };
 
     void updateFPS();
 
     GLFWwindow* getWindow();
-    ~Window();
 };
 
 #endif

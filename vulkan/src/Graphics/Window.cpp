@@ -2,13 +2,13 @@
 #include "../Globals.h"
 #include <stdexcept>
 
-Window::Window(int width, int height, std::string windowName)
+Window::Window(int width, int height, const char* name)
     : width(width), height(height), name(name)
 {
     glfwInit();
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_window = glfwCreateWindow(width, height, windowName.c_str(), NULL, NULL);
+    m_window = glfwCreateWindow(width, height, name, NULL, NULL);
     if (m_window == NULL)
     {
         glfwTerminate();
@@ -59,7 +59,7 @@ void Window::updateFPS()
     {
         std::string FPS      = std::to_string((1.0 / timeDiff) * counter);
         std::string ms       = std::to_string((timeDiff / counter) * 1000.0);
-        std::string newTitle = name + "   " + FPS + " FPS / " + ms + " ms";
+        std::string newTitle = std::string(name) + "   " + FPS + " FPS / " + ms + " ms";
         glfwSetWindowTitle(m_window, newTitle.c_str());
         prevTime = crntTime;
         counter  = 0;

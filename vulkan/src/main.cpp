@@ -1,18 +1,12 @@
 ﻿#include "main.h"
 #include "Globals.h"
-#include "Graphics/Window.h"
+#include "App.h"
 
 int main()
 {
-    Window window(1920, 1080, "VK Tutorial");
+    App app;
 
-    while (!window.ShouldClose())
-    {
-        window.StartFrame();
-        window.updateFPS();
-
-        window.EndFrame();
-    }
+    app.run();
 
     return 0;
 }
