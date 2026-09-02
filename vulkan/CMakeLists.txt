@@ -12,7 +12,9 @@
   src/Graphics/Device.h
   src/Globals.h
   src/Graphics/Swapchain.h
-  src/Graphics/Swapchain.cpp)
+  src/Graphics/Swapchain.cpp
+  src/Graphics/Model.h
+  src/Graphics/Model.cpp)
 
 set(APP_OUTPUT_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
 message(

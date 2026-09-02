@@ -8,6 +8,7 @@ App::App()
       device(window),
       swapchain(device, window.getExtent())
 {
+    loadModels();
     createPipelineLayout();
     createPipeline();
     createCommandBuffers();
@@ -32,6 +33,16 @@ void App::run()
     }
 }
 
+void App::loadModels()
+{
+    std ::vector<Model ::Vertex> vertices{
+        { { 0.0f, -0.5f } },
+        { { 0.5f, 0.5f } },
+        { { -0.5f, 0.5f } }
+    };
+    model = std::make_unique<Model>(device, vertices);
+}
+
 void App::createPipelineLayout()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -42,6 +53,7 @@ void App::createPipelineLayout()
     if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         throw std::runtime_error("[ERROR] failed to create pipeline layout");
 }
+
 void App::createPipeline()
 {
     PipelineConfigInfo pipelineConfig = Pipeline::defaultPipelineConfigInfo(swapchain.width(), swapchain.height());
@@ -49,6 +61,7 @@ void App::createPipeline()
     pipelineConfig.pipelineLayout     = pipelineLayout;
     pipeline                          = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/default.vert.spv", "Assets/Shaders/default.frag.spv");
 }
+
 void App::createCommandBuffers()
 {
     commandBuffers.resize(swapchain.imageCount());
@@ -86,7 +99,8 @@ void App::createCommandBuffers()
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         pipeline->Bind(commandBuffers[i]);
-        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+        model->Bind(commandBuffers[i]);
+        model->Draw(commandBuffers[i]);
 
         vkCmdEndRenderPass(commandBuffers[i]);
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)

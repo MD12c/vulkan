@@ -1,0 +1,39 @@
+#ifndef MODEL_CLASS_H
+#define MODEL_CLASS_H
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+
+#include "Device.h"
+
+class Model
+{
+public:
+    struct Vertex
+    {
+        glm::vec2 pos;
+
+        static std::vector<VkVertexInputBindingDescription>   getBindingDescriptions();
+        static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+    };
+
+private:
+    lve::MyEngineDevice& device;
+    VkBuffer             vertexBuffer;
+    VkDeviceMemory       vertexBufferMemory;
+    uint32_t             vertexCount;
+
+    void createVertexBuffers(const std::vector<Vertex>& vertices);
+
+public:
+    Model(lve::MyEngineDevice& device, const std::vector<Vertex>& vertices);
+    ~Model();
+    Model(const Model&)            = delete;
+    Model& operator=(const Model&) = delete;
+
+    void Bind(VkCommandBuffer commandBuffer);
+    void Draw(VkCommandBuffer commandBuffer);
+};
+
+#endif

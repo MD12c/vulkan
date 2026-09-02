@@ -8,6 +8,7 @@
 #include "Graphics/Pipeline.h"
 #include "Graphics/Device.h"
 #include "Graphics/Swapchain.h"
+#include "Graphics/Model.h"
 
 class App
 {
@@ -25,7 +26,9 @@ private:
     std::unique_ptr<Pipeline>    pipeline;
     VkPipelineLayout             pipelineLayout;
     std::vector<VkCommandBuffer> commandBuffers;
+    std::unique_ptr<Model>       model;
 
+    void loadModels();
     void createPipeline();
     void createPipelineLayout();
     void createCommandBuffers();
