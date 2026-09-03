@@ -4,6 +4,16 @@
 #include <stdexcept>
 #include <array>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+
+struct PushConstantData
+{
+    glm::vec2 offset;
+    alignas(16) glm::vec3 color;
+};
+
 App::App()
     : window(width, height, name),
       device(window)
@@ -76,17 +86,22 @@ void App::loadModels()
         { { 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } }
     };
 
-    // model = std::make_unique<Model>(device, vertices);
-    model = std::make_unique<Model>(device, subdivide(vertices, 0));
+    model = std::make_unique<Model>(device, vertices);
+    // model = std::make_unique<Model>(device, subdivide(vertices, 0));
 }
 
 void App::createPipelineLayout()
 {
+    VkPushConstantRange pushConstantRangeInfo{};
+    pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRangeInfo.offset     = 0;
+    pushConstantRangeInfo.size       = sizeof(PushConstantData);
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount         = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges    = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
     if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         throw std::runtime_error("[ERROR] failed to create pipeline layout");
 }
@@ -95,7 +110,7 @@ void App::createPipeline()
 {
     assert(swapchain != nullptr && "Cannot create pipeline before swap chain");
     assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
-    
+
     PipelineConfigInfo pipelineConfig{};
     Pipeline::defaultPipelineConfigInfo(pipelineConfig);
     pipelineConfig.renderPass     = swapchain->getRenderPass();
@@ -124,6 +139,9 @@ void App::freeCommandBuffers()
 
 void App::recordCommandBuffer(int imageIndex)
 {
+    static int frame = 0;
+    frame = (frame + 1) % 1000;
+
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -159,7 +177,15 @@ void App::recordCommandBuffer(int imageIndex)
 
     pipeline->Bind(commandBuffers[imageIndex]);
     model->Bind(commandBuffers[imageIndex]);
-    model->Draw(commandBuffers[imageIndex]);
+
+    for (int j = 0; j < 4; j++)
+    {
+        PushConstantData push{};
+        push.offset = { -0.5f + frame * 0.0002f, -0.4f + j * 0.25f };
+        push.color  = { 0.0f, 0.0f, 0.2f + 0.2f * j };
+        vkCmdPushConstants(commandBuffers[imageIndex], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &push);
+        model->Draw(commandBuffers[imageIndex]);
+    }
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
     if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS)

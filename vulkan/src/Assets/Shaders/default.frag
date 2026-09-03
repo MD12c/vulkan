@@ -1,10 +1,15 @@
 #version 460 core
 
-layout(location = 0) in vec3 Color;
-
 layout(location = 0) out vec4 FragColor;
+
+layout(push_constant) uniform Push
+{
+    vec2 offset;
+    vec3 color;
+} push;
+
 
 void main()
 {
-    FragColor = vec4(Color, 1.0);
+    FragColor = vec4(push.color, 1.0);
 }
