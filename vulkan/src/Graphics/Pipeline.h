@@ -7,17 +7,21 @@
 
 struct PipelineConfigInfo
 {
-    VkViewport                             viewport;
-    VkRect2D                               scissor;
+    VkPipelineViewportStateCreateInfo      viewportInfo;
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
     VkPipelineRasterizationStateCreateInfo rasterizationInfo;
     VkPipelineMultisampleStateCreateInfo   multisampleInfo;
-    VkPipelineColorBlendAttachmentState    colorBlendAttachment;
-    VkPipelineColorBlendStateCreateInfo    colorBlendInfo;
     VkPipelineDepthStencilStateCreateInfo  depthStencilInfo;
-    VkPipelineLayout                       pipelineLayout = VK_NULL_HANDLE;
-    VkRenderPass                           renderPass     = VK_NULL_HANDLE;
-    uint32_t                               subpass        = 0;
+    VkPipelineColorBlendStateCreateInfo    colorBlendInfo;
+    VkPipelineColorBlendAttachmentState    colorBlendAttachment;
+    std::vector<VkDynamicState>            dynamicStateEnables;
+    VkPipelineDynamicStateCreateInfo       dynamicStateInfo;
+    VkPipelineLayout                       pipelineLayout    = VK_NULL_HANDLE;
+    VkRenderPass                           renderPass        = VK_NULL_HANDLE;
+    uint32_t                               subpass           = 0;
+    PipelineConfigInfo()                                     = default;
+    PipelineConfigInfo(const PipelineConfigInfo&)            = delete;
+    PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
 };
 
 class Pipeline
@@ -42,7 +46,7 @@ public:
     Pipeline(const Pipeline&)            = delete;
     Pipeline& operator=(const Pipeline&) = delete;
 
-    void Bind(VkCommandBuffer commandBuffer);
-    static PipelineConfigInfo defaultPipelineConfigInfo(uint32_t width, uint32_t height);
+    void        Bind(VkCommandBuffer commandBuffer);
+    static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
 };
 #endif

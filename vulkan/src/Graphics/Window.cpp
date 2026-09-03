@@ -6,7 +6,7 @@ Window::Window(int width, int height, const char* name)
     : width(width), height(height), name(name)
 {
     glfwInit();
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     m_window = glfwCreateWindow(width, height, name, NULL, NULL);
     if (m_window == NULL)
@@ -17,28 +17,16 @@ Window::Window(int width, int height, const char* name)
     }
     glfwMakeContextCurrent(m_window);
 
-    auto resizeCallback   = [](GLFWwindow* win, int w, int h) {};
-    auto GLFW_KeyCallback = [](GLFWwindow* window, int key, int scancode, int action, int mods)
+    glfwSetWindowUserPointer(m_window, this);
+    auto keyCallback = [](GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         if ((key == GLFW_KEY_ESCAPE) && (action == GLFW_PRESS))
             glfwSetWindowShouldClose(window, GLFW_TRUE);
     };
 
-    glfwSetFramebufferSizeCallback(m_window, resizeCallback);
-    glfwSetKeyCallback(m_window, GLFW_KeyCallback);
+    glfwSetFramebufferSizeCallback(m_window, framebufferResizedCallBack);
+    glfwSetKeyCallback(m_window, keyCallback);
 
-    // if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    // {
-    //     glfwDestroyWindow(m_window);
-    //     glfwTerminate();
-    //     throw std::runtime_error("Failed to initialize GLAD");
-    // }
-
-    // glEnable(GL_DEBUG_OUTPUT);
-    // glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    // glViewport(0, 0, width, height);
-    // glClearColor(windowRGB[0], windowRGB[1], windowRGB[2], 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT);
     glfwSwapBuffers(m_window);
     glfwSwapInterval(0);
 }
@@ -95,4 +83,13 @@ void Window::EndFrame()
 {
     glfwSwapBuffers(m_window);
     glfwPollEvents();
+}
+
+void Window::framebufferResizedCallBack(GLFWwindow* window, int width, int height)
+{
+    auto ptr = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+
+    ptr->framebufferResized = true;
+    ptr->width              = width;
+    ptr->height             = height;
 }
