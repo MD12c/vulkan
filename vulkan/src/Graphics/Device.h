@@ -8,9 +8,6 @@
 
 class Window;
 
-namespace lve
-{
-
 struct SwapChainSupportDetails
 {
     VkSurfaceCapabilitiesKHR        capabilities;
@@ -26,7 +23,7 @@ struct QueueFamilyIndices
     bool     presentFamilyHasValue  = false;
 };
 
-class MyEngineDevice
+class Device
 {
 private:
     void createInstance();
@@ -66,14 +63,14 @@ public:
     const bool enableValidationLayers = true;
 #endif
 
-    MyEngineDevice(Window& window);
-    ~MyEngineDevice();
+    Device(Window& window);
+    ~Device();
 
     // Not copyable or movable
-    MyEngineDevice(const MyEngineDevice&)       = delete;
-    void operator=(const MyEngineDevice&)       = delete;
-    MyEngineDevice(MyEngineDevice&&)            = delete;
-    MyEngineDevice& operator=(MyEngineDevice&&) = delete;
+    Device(const Device&)         = delete;
+    void operator=(const Device&) = delete;
+    Device(Device&&)              = delete;
+    Device& operator=(Device&&)   = delete;
 
     VkCommandPool getCommandPool() { return commandPool; }
     VkDevice      device() { return device_; }
@@ -83,7 +80,7 @@ public:
 
     SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
     uint32_t                findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); } // return findQueueFamilies(physicalDevice)
+    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice)
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
     // Buffer Helper Functions
@@ -97,5 +94,3 @@ public:
 
     VkPhysicalDeviceProperties properties;
 };
-
-}  // namespace lve

@@ -20,13 +20,13 @@ private:
         0.7f, 0.7f, 0.7f
     };
 
-    Window                                  window;
-    lve::MyEngineDevice                     device;
-    std::unique_ptr<lve::MyEngineSwapChain> swapchain;
-    std::unique_ptr<Pipeline>               pipeline;
-    VkPipelineLayout                        pipelineLayout;
-    std::vector<VkCommandBuffer>            commandBuffers;
-    std::unique_ptr<Model>                  model;
+    Window                       window;
+    Device                       device;
+    std::unique_ptr<SwapChain>   swapchain;
+    std::unique_ptr<Pipeline>    pipeline;
+    VkPipelineLayout             pipelineLayout;
+    std::vector<VkCommandBuffer> commandBuffers;
+    std::unique_ptr<Model>       model;
 
     void loadModels();
     void createPipeline();

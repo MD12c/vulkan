@@ -27,10 +27,10 @@ struct PipelineConfigInfo
 class Pipeline
 {
 private:
-    lve::MyEngineDevice& device;
-    VkPipeline           graphicsPipeline;
-    VkShaderModule       vertShaderModule;
-    VkShaderModule       fragShaderModule;
+    Device&        device;
+    VkPipeline     graphicsPipeline;
+    VkShaderModule vertShaderModule;
+    VkShaderModule fragShaderModule;
 
     static std::vector<char> readFile(const std::string& filepath);
 
@@ -38,7 +38,7 @@ private:
     void createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 
 public:
-    Pipeline(lve::MyEngineDevice&      device,
+    Pipeline(Device&                   device,
              const PipelineConfigInfo& pipelineConfigInfo,
              const std::string&        vertFilepath,
              const std::string&        fragFilepath);

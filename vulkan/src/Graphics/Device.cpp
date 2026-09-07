@@ -7,8 +7,6 @@
 
 #include "Window.h"
 
-namespace lve
-{
 void DestroyDebugUtilsMessengerEXT(
     VkInstance                   instance,
     VkDebugUtilsMessengerEXT     debugMessenger,
@@ -20,7 +18,7 @@ void DestroyDebugUtilsMessengerEXT(
 }
 
 // class member functions
-MyEngineDevice::MyEngineDevice(Window& window) : window{ window }
+Device::Device(Window& window) : window{ window }
 {
     createInstance();
     setupDebugMessenger();
@@ -30,7 +28,7 @@ MyEngineDevice::MyEngineDevice(Window& window) : window{ window }
     createCommandPool();
 }
 
-MyEngineDevice::~MyEngineDevice()
+Device::~Device()
 {
     vkDestroyCommandPool(device_, commandPool, nullptr);
     vkDestroyDevice(device_, nullptr);
@@ -55,7 +53,7 @@ MyEngineDevice::~MyEngineDevice()
 /// 5. Create VkInstance with `vkCreateInstance()`
 ///
 /// 6. Call `hasGflwRequiredInstanceExtensions()` to check if GLFW has them
-void MyEngineDevice::createInstance()
+void Device::createInstance()
 {
     if (enableValidationLayers && !checkValidationLayerSupport())
         throw std::runtime_error("validation layers requested, but not available!");
@@ -102,7 +100,7 @@ void MyEngineDevice::createInstance()
 /// 1. Iterates through all GPUs and checks `isDeviceSuitable()`, then sets physicalDevice to a usable VkPhysicalDevice
 ///
 /// 2. Prints `Device count:` and `physical device:`
-void MyEngineDevice::pickPhysicalDevice()
+void Device::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -142,7 +140,7 @@ void MyEngineDevice::pickPhysicalDevice()
 /// 5. Call `vkCreateDevice()` to make device using struct in (5.)
 ///
 /// 6. Call `vkGetDeviceQueue()` to get the `VkQueue` handles for both graphics and present queue families
-void MyEngineDevice::createLogicalDevice()
+void Device::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -182,7 +180,7 @@ void MyEngineDevice::createLogicalDevice()
 }
 
 /// @brief Allocates a block of memory that is reserved for command buffers aka `VkCommandPool commandPool`
-void MyEngineDevice::createCommandPool()
+void Device::createCommandPool()
 {
     QueueFamilyIndices queueFamilyIndices = findPhysicalQueueFamilies();
 
@@ -196,7 +194,7 @@ void MyEngineDevice::createCommandPool()
         throw std::runtime_error("failed to create command pool!");
 }
 
-void MyEngineDevice::createSurface() { window.createWindowSurface(instance, &surface_); }
+void Device::createSurface() { window.createWindowSurface(instance, &surface_); }
 
 /// @brief
 /// 1. Call `findQueueFamilies()` to get the conforming graphics and present queue families
@@ -210,7 +208,7 @@ void MyEngineDevice::createSurface() { window.createWindowSurface(instance, &sur
 /// 5. && check: graphicsFamilyHasValue, presentFamilyHasValue, extensionsSupported, swapChainAdequate and used extensions from (3.)
 /// @param device the VkPhysicalDevice in question
 /// @return Are all the flags in (5.) valid?
-bool MyEngineDevice::isDeviceSuitable(VkPhysicalDevice device)
+bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -250,7 +248,7 @@ bool MyEngineDevice::isDeviceSuitable(VkPhysicalDevice device)
 
 /// @brief Specifies flags for debugging and populates the debug logic lambda
 /// @param createInfo `VkDebugUtilsMessengerCreateInfoEXT` info to create `VkDebugUtilsMessengerEXT`
-void MyEngineDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void Device::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
     createInfo       = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -289,7 +287,7 @@ void MyEngineDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreat
 }
 
 /// @brief creates a `VkDebugUtilsMessengerEXT` object
-void MyEngineDevice::setupDebugMessenger()
+void Device::setupDebugMessenger()
 {
     if (!enableValidationLayers) return;
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
@@ -305,7 +303,7 @@ void MyEngineDevice::setupDebugMessenger()
 
 /// @brief Checks if the error handling layers are present
 /// @return Are all layers are present?
-bool MyEngineDevice::checkValidationLayerSupport()
+bool Device::checkValidationLayerSupport()
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -335,7 +333,7 @@ bool MyEngineDevice::checkValidationLayerSupport()
 
 /// @brief gets the extensions from GLFW (VK_KHR_surface and VK_KHR_win32_surface)
 /// @return vector of C strings that are the names of extensions needed
-std::vector<const char*> MyEngineDevice::getRequiredExtensions()
+std::vector<const char*> Device::getRequiredExtensions()
 {
     uint32_t     glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -355,7 +353,7 @@ std::vector<const char*> MyEngineDevice::getRequiredExtensions()
 /// Print "Available extensions:" and "Required extensions:"
 ///
 /// Throw if Required is not in Available
-void MyEngineDevice::hasGflwRequiredInstanceExtensions()
+void Device::hasGflwRequiredInstanceExtensions()
 {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -391,7 +389,7 @@ void MyEngineDevice::hasGflwRequiredInstanceExtensions()
 /// - bool     graphicsFamilyHasValue = false;
 ///
 /// - bool     presentFamilyHasValue  = false;
-QueueFamilyIndices MyEngineDevice::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -437,7 +435,7 @@ QueueFamilyIndices MyEngineDevice::findQueueFamilies(VkPhysicalDevice device)
 /// - `formats` (std::vector<VkSurfaceFormatKHR>)
 ///
 /// - `presentModes` (std::vector<VkPresentModeKHR>)
-SwapChainSupportDetails MyEngineDevice::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
@@ -469,7 +467,7 @@ SwapChainSupportDetails MyEngineDevice::querySwapChainSupport(VkPhysicalDevice d
 /// @param tiling `VK_IMAGE_TILING_OPTIMAL` for optimal GPU packing, `VK_IMAGE_TILING_LINEAR` for CPU access
 /// @param features image format features that will be used e.g. `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT`, `VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT` . . .
 /// @return image format enum e.g. `VK_FORMAT_R8G8B8_UINT`, `VK_FORMAT_R32G32B32_SFLOAT` . . .
-VkFormat MyEngineDevice::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
     for (VkFormat format : candidates)
     {
@@ -498,7 +496,7 @@ VkFormat MyEngineDevice::findSupportedFormat(const std::vector<VkFormat>& candid
 /// - `VkMemoryPropertyFlags`    propertyFlags;
 ///
 /// - `uint32_t`                 heapIndex;
-uint32_t MyEngineDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -523,7 +521,7 @@ uint32_t MyEngineDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 /// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
 /// @param buffer empty `VkBuffer` handle
 /// @param bufferMemory empty `VkDeviceMemory` handle to the GPU memory
-void MyEngineDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -551,7 +549,7 @@ void MyEngineDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, V
 
 /// @brief Allocates the command buffer using commandPool and starts recording using `vkBeginCommandBuffer()`
 /// @return Handle to the command buffer recording
-VkCommandBuffer MyEngineDevice::beginSingleTimeCommands()
+VkCommandBuffer Device::beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -572,7 +570,7 @@ VkCommandBuffer MyEngineDevice::beginSingleTimeCommands()
 
 /// @brief Stops the recording of command buffer and submits via `vkQueueSubmit()` and waits till it finishes executing
 /// @param commandBuffer handle to the command buffer recording, got by `beginSingleTimeCommands()`
-void MyEngineDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -598,7 +596,7 @@ void MyEngineDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 /// @param srcBuffer source buffer
 /// @param dstBuffer destination buffer
 /// @param size number of bytes to copy
-void MyEngineDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -617,7 +615,7 @@ void MyEngineDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
 /// @param width image width in texels
 /// @param height image height in texels
 /// @param layerCount number of image layers
-void MyEngineDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
+void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -660,7 +658,7 @@ void MyEngineDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
 /// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
 /// @param image empty handle to the image
 /// @param imageMemory empty `VkDeviceMemory` handle to the GPU memory
-void MyEngineDevice::createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void Device::createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS)
         throw std::runtime_error("failed to create image!");
@@ -679,5 +677,3 @@ void MyEngineDevice::createImageWithInfo(const VkImageCreateInfo& imageInfo, VkM
     if (vkBindImageMemory(device_, image, imageMemory, 0) != VK_SUCCESS)
         throw std::runtime_error("failed to bind image memory!");
 }
-
-}  // namespace lve

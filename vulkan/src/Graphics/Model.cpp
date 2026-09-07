@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-Model::Model(lve::MyEngineDevice& device, const std::vector<Vertex>& vertices)
+Model::Model(Device& device, const std::vector<Vertex>& vertices)
     : device(device)
 {
     createVertexBuffers(vertices);
@@ -49,6 +49,6 @@ std::vector<VkVertexInputBindingDescription> Model::Vertex::getBindingDescriptio
 }
 std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions()
 {
-    return { { 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, pos) }, {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)} };
+    return { { 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, pos) }, { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color) } };
     // Location, Binding, format, offset
 }

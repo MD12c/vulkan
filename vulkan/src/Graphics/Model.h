@@ -20,15 +20,15 @@ public:
     };
 
 private:
-    lve::MyEngineDevice& device;
-    VkBuffer             vertexBuffer;
-    VkDeviceMemory       vertexBufferMemory;
-    uint32_t             vertexCount;
+    Device&        device;
+    VkBuffer       vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    uint32_t       vertexCount;
 
     void createVertexBuffers(const std::vector<Vertex>& vertices);
 
 public:
-    Model(lve::MyEngineDevice& device, const std::vector<Vertex>& vertices);
+    Model(Device& device, const std::vector<Vertex>& vertices);
     ~Model();
     Model(const Model&)            = delete;
     Model& operator=(const Model&) = delete;

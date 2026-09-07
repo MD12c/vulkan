@@ -7,7 +7,7 @@
 
 #include "Model.h"
 
-Pipeline::Pipeline(lve::MyEngineDevice&      device,
+Pipeline::Pipeline(Device&                   device,
                    const PipelineConfigInfo& pipelineConfigInfo,
                    const std::string&        vertFilepath,
                    const std::string&        fragFilepath)

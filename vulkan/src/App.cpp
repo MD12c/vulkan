@@ -140,7 +140,7 @@ void App::freeCommandBuffers()
 void App::recordCommandBuffer(int imageIndex)
 {
     static int frame = 0;
-    frame = (frame + 1) % 1000;
+    frame            = (frame + 1) % 1000;
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -203,10 +203,10 @@ void App::recreateSwapchain()
 
     vkDeviceWaitIdle(device.device());
     if (swapchain == nullptr)
-        swapchain = std::make_unique<lve::MyEngineSwapChain>(device, extent);
+        swapchain = std::make_unique<SwapChain>(device, extent);
     else
     {
-        swapchain = std::make_unique<lve::MyEngineSwapChain>(device, extent, std::move(swapchain));
+        swapchain = std::make_unique<SwapChain>(device, extent, std::move(swapchain));
         if (swapchain->imageCount() != commandBuffers.size())
         {
             freeCommandBuffers();

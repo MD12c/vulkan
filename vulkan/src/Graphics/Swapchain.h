@@ -2,28 +2,23 @@
 
 #include "device.h"
 
-// vulkan headers
 #include <vulkan/vulkan.h>
 
-// std lib headers
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace lve
-{
-
-class MyEngineSwapChain
+class SwapChain
 {
 public:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-    MyEngineSwapChain(MyEngineDevice& deviceRef, VkExtent2D windowExtent);
-    MyEngineSwapChain(MyEngineDevice& deviceRef, VkExtent2D windowExtent, std::shared_ptr<MyEngineSwapChain> previous);
-    ~MyEngineSwapChain();
+    SwapChain(Device& deviceRef, VkExtent2D windowExtent);
+    SwapChain(Device& deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous);
+    ~SwapChain();
 
-    MyEngineSwapChain(const MyEngineSwapChain&) = delete;
-    void operator=(const MyEngineSwapChain&)    = delete;
+    SwapChain(const SwapChain&)      = delete;
+    void operator=(const SwapChain&) = delete;
 
     VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
     VkRenderPass  getRenderPass() { return renderPass; }
@@ -67,11 +62,11 @@ private:
     std::vector<VkImage>        swapChainImages;
     std::vector<VkImageView>    swapChainImageViews;
 
-    MyEngineDevice& device;
-    VkExtent2D      windowExtent;
+    Device&    device;
+    VkExtent2D windowExtent;
 
-    VkSwapchainKHR                     swapChain;
-    std::shared_ptr<MyEngineSwapChain> oldSwapchain;
+    VkSwapchainKHR             swapChain;
+    std::shared_ptr<SwapChain> oldSwapchain;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -79,5 +74,3 @@ private:
     std::vector<VkFence>     imagesInFlight;
     size_t                   currentFrame = 0;
 };
-
-}  // namespace lve
