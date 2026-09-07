@@ -1,6 +1,5 @@
 #include "Device.h"
 
-// std headers
 #include <cstring>
 #include <iostream>
 #include <set>
@@ -10,32 +9,6 @@
 
 namespace lve
 {
-
-// local callback functions
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT             messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void*                                       pUserData)
-{
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-    return VK_FALSE;
-}
-
-VkResult CreateDebugUtilsMessengerEXT(
-    VkInstance                                instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks*              pAllocator,
-    VkDebugUtilsMessengerEXT*                 pDebugMessenger)
-{
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr)
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    else
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-}
-
 void DestroyDebugUtilsMessengerEXT(
     VkInstance                   instance,
     VkDebugUtilsMessengerEXT     debugMessenger,
@@ -69,6 +42,19 @@ MyEngineDevice::~MyEngineDevice()
     vkDestroyInstance(instance, nullptr);
 }
 
+/// @brief Create a VkInstance
+///
+/// 1. Call `checkValidationLayerSupport()`
+///
+/// 2. Specify the app info
+///
+/// 3. Call `getRequiredExtensions()` and put in app info
+///
+/// 4. Call `populateDebugMessengerCreateInfo()`
+///
+/// 5. Create VkInstance with `vkCreateInstance()`
+///
+/// 6. Call `hasGflwRequiredInstanceExtensions()` to check if GLFW has them
 void MyEngineDevice::createInstance()
 {
     if (enableValidationLayers && !checkValidationLayerSupport())
@@ -76,7 +62,7 @@ void MyEngineDevice::createInstance()
 
     VkApplicationInfo appInfo  = {};
     appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName   = "LittleVulkanEngine App";
+    appInfo.pApplicationName   = "Vulkan App";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName        = "No Engine";
     appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
@@ -111,6 +97,11 @@ void MyEngineDevice::createInstance()
     hasGflwRequiredInstanceExtensions();
 }
 
+/// @brief sets physicalDevice to a usable VkPhysicalDevice
+///
+/// 1. Iterates through all GPUs and checks `isDeviceSuitable()`, then sets physicalDevice to a usable VkPhysicalDevice
+///
+/// 2. Prints `Device count:` and `physical device:`
 void MyEngineDevice::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
@@ -138,12 +129,26 @@ void MyEngineDevice::pickPhysicalDevice()
     std::cout << "physical device: " << properties.deviceName << std::endl;
 }
 
+/// @brief Creates a VkDevice aka handle to the GPU
+///
+/// 1. Call `findQueueFamilies()` to get the queue family with supported graphics && present
+///
+/// 2. Create a `VkDeviceQueueCreateInfo` struct containing the fetched queues in (1.)
+///
+/// 3. Create a `VkPhysicalDeviceFeatures` struct containing the used features
+///
+/// 4. Create a `VkDeviceCreateInfo` struct that has the previous 2 structs
+///
+/// 5. Call `vkCreateDevice()` to make device using struct in (5.)
+///
+/// 6. Call `vkGetDeviceQueue()` to get the `VkQueue` handles for both graphics and present queue families
 void MyEngineDevice::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t>                   uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
+    // collapses all same queues into a single one, capable of both
+    std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies)
@@ -169,18 +174,6 @@ void MyEngineDevice::createLogicalDevice()
     createInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    // might not really be necessary anymore because device specific validation layers
-    // have been deprecated
-    if (enableValidationLayers)
-    {
-        createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
-    }
-    else
-    {
-        createInfo.enabledLayerCount = 0;
-    }
-
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS)
         throw std::runtime_error("failed to create logical device!");
 
@@ -188,15 +181,16 @@ void MyEngineDevice::createLogicalDevice()
     vkGetDeviceQueue(device_, indices.presentFamily, 0, &presentQueue_);
 }
 
+/// @brief Allocates a block of memory that is reserved for command buffers aka `VkCommandPool commandPool`
 void MyEngineDevice::createCommandPool()
 {
     QueueFamilyIndices queueFamilyIndices = findPhysicalQueueFamilies();
 
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex        = queueFamilyIndices.graphicsFamily;
-    poolInfo.flags =
-        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex        = queueFamilyIndices.graphicsFamily;                // graphics family queue
+    poolInfo.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |            // command buffers from this pool will be short-lived, re-recorded frequently
+                                       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allows individual command buffers allocated from this pool to be reset/re-recorded independently
 
     if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
         throw std::runtime_error("failed to create command pool!");
@@ -204,11 +198,38 @@ void MyEngineDevice::createCommandPool()
 
 void MyEngineDevice::createSurface() { window.createWindowSurface(instance, &surface_); }
 
+/// @brief
+/// 1. Call `findQueueFamilies()` to get the conforming graphics and present queue families
+///
+/// 2. Checks if required extensions in `deviceExtensions` are supported by the GPU with `vkEnumerateDeviceExtensionProperties()`
+///
+/// 3. Call `querySwapChainSupport()` to get pixel format + colorspace and presentMode
+///
+/// 4. Call `vkGetPhysicalDeviceFeatures()` to get a list of features supported
+///
+/// 5. && check: graphicsFamilyHasValue, presentFamilyHasValue, extensionsSupported, swapChainAdequate and used extensions from (3.)
+/// @param device the VkPhysicalDevice in question
+/// @return Are all the flags in (5.) valid?
 bool MyEngineDevice::isDeviceSuitable(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices = findQueueFamilies(device);
 
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
+    // get supported extensions for GPU device
+    bool extensionsSupported;
+    {
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+        for (const auto& extension : availableExtensions)
+            requiredExtensions.erase(extension.extensionName);
+
+        extensionsSupported = requiredExtensions.empty();
+    }
 
     bool swapChainAdequate = false;
     if (extensionsSupported)
@@ -220,33 +241,70 @@ bool MyEngineDevice::isDeviceSuitable(VkPhysicalDevice device)
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    return indices.graphicsFamilyHasValue &&
+           indices.presentFamilyHasValue &&
+           extensionsSupported &&
+           swapChainAdequate &&
+           supportedFeatures.samplerAnisotropy;
 }
 
-void MyEngineDevice::populateDebugMessengerCreateInfo(
-    VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+/// @brief Specifies flags for debugging and populates the debug logic lambda
+/// @param createInfo `VkDebugUtilsMessengerCreateInfoEXT` info to create `VkDebugUtilsMessengerEXT`
+void MyEngineDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
-    createInfo                 = {};
-    createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo       = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+
     createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = debugCallback;
-    createInfo.pUserData       = nullptr;  // Optional
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+    createInfo.pUserData = nullptr;  // Optional
+
+    createInfo.pfnUserCallback = static_cast<PFN_vkDebugUtilsMessengerCallbackEXT>(
+        [](
+            VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT             messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void*                                       pUserData) -> VkBool32
+        {
+            if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+                std::cerr << "[VERBOSE INFO] " << pCallbackData->pMessage << std::endl;
+            else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+                std::cerr << "[INFO] " << pCallbackData->pMessage << std::endl;
+            else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+                std::cerr << "[WARNING] " << pCallbackData->pMessage << std::endl;
+            else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+                std::cerr << "[ERROR] " << pCallbackData->pMessage << std::endl;
+            else
+                std::cerr << "[MESSAGE] " << pCallbackData->pMessage << std::endl;
+
+            return VK_FALSE;
+        });
 }
 
+/// @brief creates a `VkDebugUtilsMessengerEXT` object
 void MyEngineDevice::setupDebugMessenger()
 {
     if (!enableValidationLayers) return;
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func == nullptr)
+        throw std::runtime_error("failed to set up debug messenger! Extension is not present.");
+
+    if (func(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
         throw std::runtime_error("failed to set up debug messenger!");
 }
 
+/// @brief Checks if the error handling layers are present
+/// @return Are all layers are present?
 bool MyEngineDevice::checkValidationLayerSupport()
 {
     uint32_t layerCount;
@@ -275,6 +333,8 @@ bool MyEngineDevice::checkValidationLayerSupport()
     return true;
 }
 
+/// @brief gets the extensions from GLFW (VK_KHR_surface and VK_KHR_win32_surface)
+/// @return vector of C strings that are the names of extensions needed
 std::vector<const char*> MyEngineDevice::getRequiredExtensions()
 {
     uint32_t     glfwExtensionCount = 0;
@@ -284,11 +344,17 @@ std::vector<const char*> MyEngineDevice::getRequiredExtensions()
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     if (enableValidationLayers)
+    {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
 
     return extensions;
 }
 
+/// @brief
+/// Print "Available extensions:" and "Required extensions:"
+///
+/// Throw if Required is not in Available
 void MyEngineDevice::hasGflwRequiredInstanceExtensions()
 {
     uint32_t extensionCount = 0;
@@ -296,7 +362,7 @@ void MyEngineDevice::hasGflwRequiredInstanceExtensions()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    std::cout << "available extensions:" << std::endl;
+    std::cout << "Available extensions:" << std::endl;
     std::unordered_set<std::string> available;
     for (const auto& extension : extensions)
     {
@@ -304,7 +370,7 @@ void MyEngineDevice::hasGflwRequiredInstanceExtensions()
         available.insert(extension.extensionName);
     }
 
-    std::cout << "required extensions:" << std::endl;
+    std::cout << "Required extensions:" << std::endl;
     auto requiredExtensions = getRequiredExtensions();
     for (const auto& required : requiredExtensions)
     {
@@ -314,26 +380,17 @@ void MyEngineDevice::hasGflwRequiredInstanceExtensions()
     }
 }
 
-bool MyEngineDevice::checkDeviceExtensionSupport(VkPhysicalDevice device)
-{
-    uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(
-        device,
-        nullptr,
-        &extensionCount,
-        availableExtensions.data());
-
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-
-    for (const auto& extension : availableExtensions)
-        requiredExtensions.erase(extension.extensionName);
-
-    return requiredExtensions.empty();
-}
-
+/// @brief Get a queue family with supported graphics && present
+/// @param device the VkPhysicalDevice in question
+/// @return A `QueueFamilyIndices` struct containing:
+///
+/// - uint32_t graphicsFamily;
+///
+/// - uint32_t presentFamily;
+///
+/// - bool     graphicsFamilyHasValue = false;
+///
+/// - bool     presentFamilyHasValue  = false;
 QueueFamilyIndices MyEngineDevice::findQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
@@ -349,17 +406,17 @@ QueueFamilyIndices MyEngineDevice::findQueueFamilies(VkPhysicalDevice device)
     {
         if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            indices.graphicsFamily         = i;
+            indices.graphicsFamily         = i;  // the graphics computation queue
             indices.graphicsFamilyHasValue = true;
         }
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &presentSupport);
         if (queueFamily.queueCount > 0 && presentSupport)
         {
-            indices.presentFamily         = i;
+            indices.presentFamily         = i;  // the display inside window queue
             indices.presentFamilyHasValue = true;
         }
-        if (indices.isComplete())
+        if (indices.graphicsFamilyHasValue && indices.presentFamilyHasValue)
             break;
 
         i++;
@@ -368,11 +425,24 @@ QueueFamilyIndices MyEngineDevice::findQueueFamilies(VkPhysicalDevice device)
     return indices;
 }
 
+/// @brief
+/// 1. Gets pixel format + colorspace (e.g., `VK_FORMAT_B8G8R8A8_SRGB` + `VK_COLOR_SPACE_SRGB_NONLINEAR_KHR`).
+///
+/// 2. Gets presentMode (e.g., `VK_PRESENT_MODE_FIFO_KHR` [vsync'd], `VK_PRESENT_MODE_MAILBOX_KHR` [triple-buffering, low latency], `VK_PRESENT_MODE_IMMEDIATE_KHR` [no sync, possible tearing]).
+/// @param device the VkPhysicalDevice in question
+/// @return A `SwapChainSupportDetails` struct containing:
+///
+/// - `capabilities` (VkSurfaceCapabilitiesKHR)
+///
+/// - `formats` (std::vector<VkSurfaceFormatKHR>)
+///
+/// - `presentModes` (std::vector<VkPresentModeKHR>)
 SwapChainSupportDetails MyEngineDevice::querySwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
 
+    // supported pixel format + colorspace e.g. VK_FORMAT_B8G8R8A8_SRGB + VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &formatCount, nullptr);
 
@@ -382,23 +452,24 @@ SwapChainSupportDetails MyEngineDevice::querySwapChainSupport(VkPhysicalDevice d
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &formatCount, details.formats.data());
     }
 
+    // e.g. VK_PRESENT_MODE_FIFO_KHR (vsync'd), VK_PRESENT_MODE_MAILBOX_KHR (triple-buffering, low latency), VK_PRESENT_MODE_IMMEDIATE_KHR (no sync, possible tearing)
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &presentModeCount, nullptr);
 
     if (presentModeCount != 0)
     {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(
-            device,
-            surface_,
-            &presentModeCount,
-            details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &presentModeCount, details.presentModes.data());
     }
     return details;
 }
 
-VkFormat MyEngineDevice::findSupportedFormat(
-    const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+/// @brief Gets the supported image format from the required image features.
+/// @param candidates list of desired image formats in order of preferance e.g. `{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}`
+/// @param tiling `VK_IMAGE_TILING_OPTIMAL` for optimal GPU packing, `VK_IMAGE_TILING_LINEAR` for CPU access
+/// @param features image format features that will be used e.g. `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT`, `VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT` . . .
+/// @return image format enum e.g. `VK_FORMAT_R8G8B8_UINT`, `VK_FORMAT_R32G32B32_SFLOAT` . . .
+VkFormat MyEngineDevice::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
     for (VkFormat format : candidates)
     {
@@ -413,6 +484,20 @@ VkFormat MyEngineDevice::findSupportedFormat(
     throw std::runtime_error("failed to find supported format!");
 }
 
+/// @brief Find a GPU memory manager type that supports the properties you provide
+/// @param typeFilter vulkan queried memory type indices this specific resource is allowed to use, varies with different GPUs
+/// @param properties how to use the memory:
+///
+/// - `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`, fast GPU-only memory
+///
+/// - `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`, CPU-mappable
+///
+/// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
+/// @return index into `VkMemoryType` containing:
+///
+/// - `VkMemoryPropertyFlags`    propertyFlags;
+///
+/// - `uint32_t`                 heapIndex;
 uint32_t MyEngineDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -426,20 +511,27 @@ uint32_t MyEngineDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void MyEngineDevice::createBuffer(
-    VkDeviceSize          size,
-    VkBufferUsageFlags    usage,
-    VkMemoryPropertyFlags properties,
-    VkBuffer&             buffer,
-    VkDeviceMemory&       bufferMemory)
+/// @brief Allocates a buffer on the GPU and connects your `VkBuffer` to that memory
+/// @param size the size in bytes of the buffer to be created
+/// @param usage is a bitmask of `VkBufferUsageFlagBits` specifying allowed usages of the buffer e.g. `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`
+/// @param properties how to use the memory:
+///
+/// - `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`, fast GPU-only memory
+///
+/// - `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`, CPU-mappable
+///
+/// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
+/// @param buffer empty `VkBuffer` handle
+/// @param bufferMemory empty `VkDeviceMemory` handle to the GPU memory
+void MyEngineDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size        = size;
     bufferInfo.usage       = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // only one queue family can access this buffer at a time
 
-    if (vkCreateBuffer(device_, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+    if (vkCreateBuffer(device_, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)  // creates a VkBuffer object on CPU, fast -> no GPU work/allocation
         throw std::runtime_error("failed to create vertex buffer!");
 
     VkMemoryRequirements memRequirements;
@@ -450,12 +542,15 @@ void MyEngineDevice::createBuffer(
     allocInfo.allocationSize  = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device_, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(device_, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)  // allocates memory on the GPU, slow. Not tied to the VkBuffer buffer handle yet
         throw std::runtime_error("failed to allocate vertex buffer memory!");
 
-    vkBindBufferMemory(device_, buffer, bufferMemory, 0);
+    if (vkBindBufferMemory(device_, buffer, bufferMemory, 0) != VK_SUCCESS)  // connects the VkBuffer buffer handle and the memory allocated
+        throw std::runtime_error("failed to bind buffer to memory");
 }
 
+/// @brief Allocates the command buffer using commandPool and starts recording using `vkBeginCommandBuffer()`
+/// @return Handle to the command buffer recording
 VkCommandBuffer MyEngineDevice::beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo{};
@@ -475,6 +570,8 @@ VkCommandBuffer MyEngineDevice::beginSingleTimeCommands()
     return commandBuffer;
 }
 
+/// @brief Stops the recording of command buffer and submits via `vkQueueSubmit()` and waits till it finishes executing
+/// @param commandBuffer handle to the command buffer recording, got by `beginSingleTimeCommands()`
 void MyEngineDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
@@ -484,12 +581,23 @@ void MyEngineDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers    = &commandBuffer;
 
-    vkQueueSubmit(graphicsQueue_, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue_);
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
+    VkFence fence;
+    vkCreateFence(device_, &fenceInfo, nullptr, &fence);
+
+    vkQueueSubmit(graphicsQueue_, 1, &submitInfo, fence);      // signal THIS fence when THIS submission finishes
+    vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_MAX);  // CPU blocks only until THIS work is done
+
+    vkDestroyFence(device_, fence, nullptr);
     vkFreeCommandBuffers(device_, commandPool, 1, &commandBuffer);
 }
 
+/// @brief Copies data from one buffer to another
+/// @param srcBuffer source buffer
+/// @param dstBuffer destination buffer
+/// @param size number of bytes to copy
 void MyEngineDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -503,14 +611,19 @@ void MyEngineDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
     endSingleTimeCommands(commandBuffer);
 }
 
-void MyEngineDevice::copyBufferToImage(
-    VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
+/// @brief Copies buffer to image
+/// @param buffer source buffer
+/// @param image destination image
+/// @param width image width in texels
+/// @param height image height in texels
+/// @param layerCount number of image layers
+void MyEngineDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
     VkBufferImageCopy region{};
-    region.bufferOffset      = 0;
-    region.bufferRowLength   = 0;
+    region.bufferOffset      = 0;  // 0 = start from the begining
+    region.bufferRowLength   = 0;  // 0 = tightly packed, no padding
     region.bufferImageHeight = 0;
 
     region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -518,18 +631,36 @@ void MyEngineDevice::copyBufferToImage(
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount     = layerCount;
 
+    // in texels
     region.imageOffset = { 0, 0, 0 };
     region.imageExtent = { width, height, 1 };
 
+    // TRANSFER_DST_OPTIMAL     -> optimal for copying
+    // SHADER_READ_ONLY_OPTIMAL -> optimal for sampling
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     endSingleTimeCommands(commandBuffer);
 }
 
-void MyEngineDevice::createImageWithInfo(
-    const VkImageCreateInfo& imageInfo,
-    VkMemoryPropertyFlags    properties,
-    VkImage&                 image,
-    VkDeviceMemory&          imageMemory)
+/// @brief Safely allocates the image buffer with the specified types and binds it to the `VkImage` handle
+///
+/// 1. Creates a `VkImage` at image with the specified `imageInfo`
+///
+/// 2. Queries image requirements and checks them against `findMemoryType()` to find a usable memory type
+///
+/// 3. Allocates image buffer via `vkAllocateMemory()`
+///
+/// 4. Binds `VkImage image` to `VkDeviceMemory imageMemory`
+/// @param imageInfo image parameters
+/// @param properties how to use the memory:
+///
+/// - `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`, fast GPU-only memory
+///
+/// - `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`, CPU-mappable
+///
+/// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
+/// @param image empty handle to the image
+/// @param imageMemory empty `VkDeviceMemory` handle to the GPU memory
+void MyEngineDevice::createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS)
         throw std::runtime_error("failed to create image!");

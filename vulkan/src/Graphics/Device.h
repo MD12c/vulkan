@@ -24,11 +24,41 @@ struct QueueFamilyIndices
     uint32_t presentFamily;
     bool     graphicsFamilyHasValue = false;
     bool     presentFamilyHasValue  = false;
-    bool     isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
 };
 
 class MyEngineDevice
 {
+private:
+    void createInstance();
+    void setupDebugMessenger();
+    void createSurface();
+    void pickPhysicalDevice();
+    void createLogicalDevice();
+    void createCommandPool();
+
+    // helper functions
+    bool                     isDeviceSuitable(VkPhysicalDevice device);
+    std::vector<const char*> getRequiredExtensions();
+    bool                     checkValidationLayerSupport();
+    QueueFamilyIndices       findQueueFamilies(VkPhysicalDevice device);
+    void                     populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void                     hasGflwRequiredInstanceExtensions();
+    SwapChainSupportDetails  querySwapChainSupport(VkPhysicalDevice device);
+
+    VkInstance               instance;  // connection between the application and the Vulkan library itself
+    VkDebugUtilsMessengerEXT debugMessenger;
+    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
+    Window&                  window;
+    VkCommandPool            commandPool;
+
+    VkDevice     device_;
+    VkSurfaceKHR surface_;
+    VkQueue      graphicsQueue_;
+    VkQueue      presentQueue_;
+
+    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
 public:
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
@@ -53,7 +83,7 @@ public:
 
     SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
     uint32_t                findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }
+    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); } // return findQueueFamilies(physicalDevice)
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
     // Buffer Helper Functions
@@ -66,38 +96,6 @@ public:
     void createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     VkPhysicalDeviceProperties properties;
-
-private:
-    void createInstance();
-    void setupDebugMessenger();
-    void createSurface();
-    void pickPhysicalDevice();
-    void createLogicalDevice();
-    void createCommandPool();
-
-    // helper functions
-    bool                     isDeviceSuitable(VkPhysicalDevice device);
-    std::vector<const char*> getRequiredExtensions();
-    bool                     checkValidationLayerSupport();
-    QueueFamilyIndices       findQueueFamilies(VkPhysicalDevice device);
-    void                     populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    void                     hasGflwRequiredInstanceExtensions();
-    bool                     checkDeviceExtensionSupport(VkPhysicalDevice device);
-    SwapChainSupportDetails  querySwapChainSupport(VkPhysicalDevice device);
-
-    VkInstance               instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
-    Window&                  window;
-    VkCommandPool            commandPool;
-
-    VkDevice     device_;
-    VkSurfaceKHR surface_;
-    VkQueue      graphicsQueue_;
-    VkQueue      presentQueue_;
-
-    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 };
 
 }  // namespace lve
