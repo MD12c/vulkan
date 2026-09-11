@@ -18,7 +18,7 @@ void DestroyDebugUtilsMessengerEXT(
 }
 
 // class member functions
-Device::Device(Window& window) : window{ window }
+Device::Device(Window& window) : window(window)
 {
     createInstance();
     setupDebugMessenger();

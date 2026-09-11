@@ -26,6 +26,20 @@ struct QueueFamilyIndices
 class Device
 {
 private:
+    VkInstance               instance;  // connection between the application and the Vulkan library itself
+    VkDebugUtilsMessengerEXT debugMessenger;
+    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
+    Window&                  window;
+    VkCommandPool            commandPool;
+
+    VkDevice     device_;
+    VkSurfaceKHR surface_;
+    VkQueue      graphicsQueue_;
+    VkQueue      presentQueue_;
+
+    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
     void createInstance();
     void setupDebugMessenger();
     void createSurface();
@@ -42,20 +56,6 @@ private:
     void                     hasGflwRequiredInstanceExtensions();
     SwapChainSupportDetails  querySwapChainSupport(VkPhysicalDevice device);
 
-    VkInstance               instance;  // connection between the application and the Vulkan library itself
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
-    Window&                  window;
-    VkCommandPool            commandPool;
-
-    VkDevice     device_;
-    VkSurfaceKHR surface_;
-    VkQueue      graphicsQueue_;
-    VkQueue      presentQueue_;
-
-    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
 public:
 #ifdef NDEBUG
     const bool enableValidationLayers = false;
@@ -66,21 +66,22 @@ public:
     Device(Window& window);
     ~Device();
 
-    // Not copyable or movable
     Device(const Device&)         = delete;
     void operator=(const Device&) = delete;
     Device(Device&&)              = delete;
     Device& operator=(Device&&)   = delete;
 
-    VkCommandPool getCommandPool() { return commandPool; }
-    VkDevice      device() { return device_; }
-    VkSurfaceKHR  surface() { return surface_; }
-    VkQueue       graphicsQueue() { return graphicsQueue_; }
-    VkQueue       presentQueue() { return presentQueue_; }
+    // clang-format off
+    VkCommandPool getCommandPool() const { return commandPool; }
+    VkDevice      device()         const { return device_; }
+    VkSurfaceKHR  surface()        const { return surface_; }
+    VkQueue       graphicsQueue()  const { return graphicsQueue_; }
+    VkQueue       presentQueue()   const { return presentQueue_; }
+    // clang-format on
 
-    SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
+    SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }  // return querySwapChainSupport(physicalDevice);
     uint32_t                findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice)
+    QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice);
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
     // Buffer Helper Functions
