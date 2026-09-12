@@ -57,9 +57,11 @@ SwapChain::~SwapChain()
     vkDestroyRenderPass(device.device(), renderPass, nullptr);
 
     // cleanup synchronization objects
+    for (size_t i = 0; i < renderFinishedSemaphores.size(); i++)
+        vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
         vkDestroyFence(device.device(), inFlightFences[i], nullptr);
     }
@@ -76,10 +78,10 @@ SwapChain::~SwapChain()
  *          takes an unsignaled imageAvailableSemaphores and signals it when window manager lets go of it
  *
  * submitCommandBuffers()
- * 
+ *
  *      if (imagesInFlight[*imageIndex] != VK_NULL_HANDLE)
  *          waits for the image at imageIndex to be freed from use by other frames
- *          
+ *
  *
  *      vkResetFences()
  *          unsignals inFlightFences
@@ -129,7 +131,7 @@ VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, uint32_
     VkSemaphore waitSemaphores[]    = { imageAvailableSemaphores[currentFrame] };
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.pWaitSemaphores      = waitSemaphores;
-    VkSemaphore signalSemaphores[]  = { renderFinishedSemaphores[currentFrame] };
+    VkSemaphore signalSemaphores[]  = { renderFinishedSemaphores[*imageIndex] };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = signalSemaphores;
 
@@ -457,7 +459,7 @@ void SwapChain::createFramebuffers()
 void SwapChain::createSyncObjects()
 {
     imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);  // Rendering into this image is done, safe to present
-    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);  // This image is done being displayed, safe to render into again
+    renderFinishedSemaphores.resize(imageCount());          // This image is done being displayed, safe to render into again
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);            // don't let the CPU start recording a new command buffer into this frame slot until GPU is done with the previous use of that same slot
     imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);    //
 
@@ -471,8 +473,12 @@ void SwapChain::createSyncObjects()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+    }
+    for (size_t i = 0; i < renderFinishedSemaphores.size(); i++)
+    {
+        if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS)
             throw std::runtime_error("failed to create synchronization objects for a frame!");
     }
 }
