@@ -4,44 +4,32 @@
 #include <memory>
 #include <vector>
 
-#include "Graphics/Window.h"
+#include "Graphics/Renderer.h"
 #include "Graphics/Pipeline.h"
-#include "Graphics/Device.h"
-#include "Graphics/Swapchain.h"
-#include "Graphics/Model.h"
+#include "Graphics/Scene.h"
 
 class App
 {
 private:
-    int         width        = 1920;
-    int         height       = 1080;
-    const char* name         = "VK Tutorial";
-    float       windowRGB[3] = {
-        0.7f, 0.7f, 0.7f
-    };
+    int         width  = 1920;
+    int         height = 1080;
+    const char* name   = "VK Tutorial";
 
-    Window                       window;
-    Device                       device;
-    std::unique_ptr<SwapChain>   swapchain;
-    std::unique_ptr<Pipeline>    pipeline;
-    VkPipelineLayout             pipelineLayout;
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::unique_ptr<Model>       model;
+    Window   window;
+    Device   device;
+    Scene    scene;
+    Renderer renderer;
 
-    void loadModels();
-    void createPipeline();
-    void createPipelineLayout();
-    void createCommandBuffers();
-    void freeCommandBuffers();
-    void drawFrame();
-    void recreateSwapchain();
-    void recordCommandBuffer(int imageIndex);
+    void Update();
+    void Render();
 
 public:
     App();
     ~App();
-    App(const App&)            = delete;
-    App& operator=(const App&) = delete;
+    App(const App&)              = delete;
+    App& operator=(const App&)   = delete;
+    App(const App&&)             = delete;
+    App&& operator=(const App&&) = delete;
 
     void run();
 };

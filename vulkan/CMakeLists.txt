@@ -14,7 +14,11 @@
   src/Graphics/Swapchain.h
   src/Graphics/Swapchain.cpp
   src/Graphics/Model.h
-  src/Graphics/Model.cpp)
+  src/Graphics/Model.cpp
+  src/Graphics/Renderer.h
+  src/Graphics/Renderer.cpp
+  src/Graphics/Scene.h
+  src/Graphics/Scene.cpp)
 
 set(APP_OUTPUT_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
 message(

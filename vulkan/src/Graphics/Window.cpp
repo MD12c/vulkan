@@ -76,13 +76,12 @@ Window::~Window()
 
 void Window::StartFrame()
 {
-    // glClearColor(windowRGB[0], windowRGB[1], windowRGB[2], 1.0f);
+    glfwPollEvents();
 }
 
 void Window::EndFrame()
 {
     glfwSwapBuffers(m_window);
-    glfwPollEvents();
 }
 
 void Window::framebufferResizedCallBack(GLFWwindow* window, int width, int height)
