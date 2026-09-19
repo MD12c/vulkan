@@ -27,8 +27,7 @@ void Model::createVertexBuffers(const std::vector<Vertex>& vertices)
     void* data;
     vkMapMemory(device.device(), vertexBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-    // no need to auto flush/send since COHERENT_BIT makes it automatically
-    vkUnmapMemory(device.device(), vertexBufferMemory);
+    vkUnmapMemory(device.device(), vertexBufferMemory);  // no need to auto flush/send since COHERENT_BIT makes it automatically
 }
 void Model::Draw(VkCommandBuffer commandBuffer)
 {

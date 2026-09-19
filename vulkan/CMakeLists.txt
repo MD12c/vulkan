@@ -17,8 +17,16 @@
   src/Graphics/Model.cpp
   src/Graphics/Renderer.h
   src/Graphics/Renderer.cpp
+  src/Graphics/Cameras/Camera.h
+  src/Graphics/Cameras/Camera.cpp
+  src/Graphics/Cameras/Fly.h
+  src/Graphics/Cameras/Fly.cpp
+  src/Graphics/DescriptorSet.h
+  src/Graphics/DescriptorSet.cpp
   src/Graphics/Scene.h
   src/Graphics/Scene.cpp)
+
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 set(APP_OUTPUT_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
 message(

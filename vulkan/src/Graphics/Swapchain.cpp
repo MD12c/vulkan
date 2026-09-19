@@ -1,5 +1,7 @@
 #include "Swapchain.h"
 
+#include "Globals.h"
+
 #include <array>
 #include <cstdlib>
 #include <cstring>
@@ -60,7 +62,7 @@ SwapChain::~SwapChain()
     for (size_t i = 0; i < renderFinishedSemaphores.size(); i++)
         vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
         vkDestroyFence(device.device(), inFlightFences[i], nullptr);
@@ -97,7 +99,7 @@ SwapChain::~SwapChain()
  *          passes image to the window manager
  */
 
-/// @brief Stalls CPU if more than MAX_FRAMES_IN_FLIGHT have been rendered, gets the next available image
+/// @brief Stalls CPU if more than Globals::MAX_FRAMES_IN_FLIGHT have been rendered, gets the next available image
 /// @param imageIndex empty `uint32_t*`
 /// @return success?
 VkResult SwapChain::acquireNextImage(uint32_t* imageIndex)
@@ -153,7 +155,7 @@ VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, uint32_
 
     auto result = vkQueuePresentKHR(device.presentQueue(), &presentInfo);  // waits on renderFinishedSemaphores and passes image to the window manager
 
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
 
     return result;
 }
@@ -458,9 +460,9 @@ void SwapChain::createFramebuffers()
 
 void SwapChain::createSyncObjects()
 {
-    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);  // Rendering into this image is done, safe to present
+    imageAvailableSemaphores.resize(Globals::MAX_FRAMES_IN_FLIGHT);  // Rendering into this image is done, safe to present
     renderFinishedSemaphores.resize(imageCount());          // This image is done being displayed, safe to render into again
-    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);            // don't let the CPU start recording a new command buffer into this frame slot until GPU is done with the previous use of that same slot
+    inFlightFences.resize(Globals::MAX_FRAMES_IN_FLIGHT);            // don't let the CPU start recording a new command buffer into this frame slot until GPU is done with the previous use of that same slot
     imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);    //
 
     VkSemaphoreCreateInfo semaphoreInfo{};
@@ -470,7 +472,7 @@ void SwapChain::createSyncObjects()
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
     {
         if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)

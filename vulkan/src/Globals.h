@@ -5,7 +5,7 @@
 
 namespace Globals
 {
-
+static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 };  // namespace Globals
 
 #endif

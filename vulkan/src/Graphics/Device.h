@@ -47,7 +47,6 @@ private:
     void createLogicalDevice();
     void createCommandPool();
 
-    // helper functions
     bool                     isDeviceSuitable(VkPhysicalDevice device);
     std::vector<const char*> getRequiredExtensions();
     bool                     checkValidationLayerSupport();
@@ -84,7 +83,6 @@ public:
     QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice);
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-    // Buffer Helper Functions
     void            createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     VkCommandBuffer beginSingleTimeCommands();
     void            endSingleTimeCommands(VkCommandBuffer commandBuffer);

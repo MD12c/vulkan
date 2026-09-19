@@ -3,10 +3,17 @@
 #include <iostream>
 
 #include "Model.h"
+#include "Cameras/Camera.h"
+#include "Cameras/Fly.h"
 
-Scene::Scene(Device& device)
+Scene::Scene(Device& device, Window& window)
 {
+    const float FOV       = 90.0f;
+    const float nearPlane = 0.1f;
+    const float farPlane  = 400.0f;
     loadModels(device);
+
+    camera = std::make_unique<CameraFly>(device, window, FOV, nearPlane, farPlane);
 }
 
 Scene::~Scene()

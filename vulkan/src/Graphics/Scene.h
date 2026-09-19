@@ -5,8 +5,10 @@
 
 #include "glm/glm.hpp"
 #include "Device.h"
+#include "Window.h"
 
 class Model;
+class Camera;
 
 struct PushConstantData
 {
@@ -21,8 +23,9 @@ private:
 
 public:
     std::unique_ptr<Model> model;
+    std::unique_ptr<Camera> camera;
 
-    Scene(Device& device);
+    Scene(Device& device, Window& window);
     ~Scene();
 };
 
