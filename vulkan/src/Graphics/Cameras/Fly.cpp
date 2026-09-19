@@ -31,9 +31,9 @@ void CameraFly::Inputs()
     if (glfwGetKey(winCache, GLFW_KEY_D) == GLFW_PRESS)
         Position += speed * glm::normalize(glm::cross(Orientation, Up));
     if (glfwGetKey(winCache, GLFW_KEY_SPACE) == GLFW_PRESS)
-        Position += speed * Up;
-    if (glfwGetKey(winCache, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         Position += speed * -Up;
+    if (glfwGetKey(winCache, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        Position += speed * Up;
     if (glfwGetKey(winCache, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         speed = 0.4f;
     else
@@ -57,18 +57,18 @@ void CameraFly::Inputs()
         glfwGetCursorPos(winCache, &mouseX, &mouseY);
 
         // Shifts the cursor coord to be in the middle of the screen and normalizes them
-        float rotX = sensitivity * (float)(mouseY - (window.getExtent().height / 2)) / window.getExtent().height;
-        float rotY = sensitivity * (float)(mouseX - (window.getExtent().width / 2)) / window.getExtent().width;
+        float rotY = sensitivity * (float)(mouseY - (window.getExtent().height / 2)) / window.getExtent().height;
+        float rotX = sensitivity * (float)(mouseX - (window.getExtent().width / 2)) / window.getExtent().width;
 
         // Gets new rotated orientation rotate -> mat4, degree, axis
-        glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotX), glm::normalize(glm::cross(Orientation, Up)));
+        glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(rotY), glm::normalize(glm::cross(Orientation, Up)));
 
         // Checks if newOrientation is not too high angle -> vec3, vec3 -> angle between in rad
         if (!((glm::angle(newOrientation, Up) <= glm::radians(5.0f)) || (glm::angle(newOrientation, -Up) <= glm::radians(5.0f))))
             Orientation = newOrientation;
 
         // Rotates orientation left/right
-        Orientation = glm::rotate(Orientation, glm::radians(-rotY), Up);
+        Orientation = glm::rotate(Orientation, glm::radians(-rotX), Up);
 
         // Locks the cursor to the middle of the screen
         glfwSetCursorPos(winCache, (window.getExtent().width / 2), (window.getExtent().height / 2));

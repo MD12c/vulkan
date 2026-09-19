@@ -24,7 +24,14 @@ App::~App()
 void App::Update()
 {
     window.updateFPS();
-    scene.camera->Inputs();
+    
+    timeCrnt = glfwGetTime();
+    timeDiff = timeCrnt - timePrev;
+    if (timeDiff >= 1.0 / 60.0)
+    {
+        timePrev = timeCrnt;
+        scene.camera->Inputs();
+    }
 }
 
 void App::Render()

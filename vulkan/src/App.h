@@ -15,6 +15,10 @@ private:
     int         height = 1080;
     const char* name   = "VK Tutorial";
 
+    double timePrev = 0;
+    double timeCrnt = 0;
+    double timeDiff;
+
     Window   window;
     Device   device;
     Scene    scene;

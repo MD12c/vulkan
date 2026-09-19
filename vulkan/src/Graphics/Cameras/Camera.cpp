@@ -9,7 +9,7 @@ Camera::Camera(Device& device, Window& window) : device(device), window(window)
 
 void Camera::updateUniforms(VkDeviceMemory& bufferMemory) const
 {
-    Payload payload(proj, view);
+    Payload payload(proj, view);  // try glm::inverse(view) after
     void*   data;
     vkMapMemory(device.device(), bufferMemory, 0, payloadSize, 0, &data);
     memcpy(data, (void*)&payload, static_cast<size_t>(payloadSize));
