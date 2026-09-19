@@ -4,7 +4,7 @@
 #include <cassert>
 #include <array>
 
-#include "Model.h"
+#include "Model\Model.h"
 #include "Cameras/Camera.h"
 
 Renderer::Renderer(Device& device, Window& window)

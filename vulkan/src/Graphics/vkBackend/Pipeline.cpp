@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#include "Model.h"
+#include "..\Model\Model.h"
 
 Pipeline::Pipeline(Device&                   device,
                    const PipelineConfigInfo& pipelineConfigInfo,

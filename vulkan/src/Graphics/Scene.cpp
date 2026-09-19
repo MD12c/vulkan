@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "Model.h"
+#include "Model\Model.h"
 #include "Cameras/Camera.h"
 #include "Cameras/Fly.h"
 

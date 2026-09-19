@@ -1,7 +1,7 @@
 #pragma once
 
 #include "device.h"
-#include "../Globals.h"
+#include "Globals.h"
 
 #include <vulkan/vulkan.h>
 

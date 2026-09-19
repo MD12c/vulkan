@@ -1,32 +1,32 @@
-﻿add_executable(
-  ${PROJECT_NAME}
-  src/main.cpp
-  src/main.h
-  src/App.cpp
-  src/App.h
-  src/Graphics/Window.cpp
-  src/Graphics/Window.h
-  src/Graphics/Pipeline.cpp
-  src/Graphics/Pipeline.h
-  src/Graphics/Device.cpp
-  src/Graphics/Device.h
-  src/Globals.h
-  src/Graphics/Swapchain.h
-  src/Graphics/Swapchain.cpp
-  src/Graphics/Model.h
-  src/Graphics/Model.cpp
-  src/Graphics/Renderer.h
-  src/Graphics/Renderer.cpp
-  src/Graphics/Cameras/Camera.h
-  src/Graphics/Cameras/Camera.cpp
-  src/Graphics/Cameras/Fly.h
-  src/Graphics/Cameras/Fly.cpp
-  src/Graphics/DescriptorSet.h
-  src/Graphics/DescriptorSet.cpp
-  src/Graphics/Scene.h
-  src/Graphics/Scene.cpp)
+﻿set(CORE_SOURCES src/main.cpp src/main.h src/App.cpp src/App.h src/Globals.h)
 
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(GRAPHICS_SOURCES
+    src/Graphics/Window.cpp src/Graphics/Window.h src/Graphics/Scene.cpp
+    src/Graphics/Scene.h src/Graphics/Renderer.cpp src/Graphics/Renderer.h)
+
+set(VULKAN_BACKEND_SOURCES
+    src/Graphics/vkBackend/Pipeline.cpp
+    src/Graphics/vkBackend/Pipeline.h
+    src/Graphics/vkBackend/Device.cpp
+    src/Graphics/vkBackend/Device.h
+    src/Graphics/vkBackend/Swapchain.h
+    src/Graphics/vkBackend/Swapchain.cpp
+    src/Graphics/vkBackend/DescriptorSet.h
+    src/Graphics/vkBackend/DescriptorSet.cpp)
+
+set(MODEL_SOURCES src/Graphics/Model/Model.h src/Graphics/Model/Model.cpp)
+
+set(CAMERA_SOURCES
+    src/Graphics/Cameras/Camera.h src/Graphics/Cameras/Camera.cpp
+    src/Graphics/Cameras/Fly.h src/Graphics/Cameras/Fly.cpp
+    src/Graphics/Cameras/Orbit.h src/Graphics/Cameras/Orbit.cpp)
+
+add_executable(
+  ${PROJECT_NAME} ${CORE_SOURCES} ${GRAPHICS_SOURCES} ${VULKAN_BACKEND_SOURCES}
+                  ${MODEL_SOURCES} ${CAMERA_SOURCES})
+
+target_include_directories(${PROJECT_NAME}
+                           PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 set(APP_OUTPUT_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
 message(

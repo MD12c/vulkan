@@ -2,9 +2,9 @@
 #define RENDERER_CLASS_H
 
 #include "vulkan/vulkan.h"
-#include "Device.h"
-#include "Pipeline.h"
-#include "Swapchain.h"
+#include "vkBackend/Device.h"
+#include "vkBackend/Pipeline.h"
+#include "vkBackend/Swapchain.h"
 #include "Window.h"
 #include "Scene.h"
 
