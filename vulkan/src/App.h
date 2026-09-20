@@ -19,10 +19,10 @@ private:
     double timeCrnt = 0;
     double timeDiff;
 
-    Window   window;
-    Device   device;
-    Scene    scene;
-    Renderer renderer;
+    Window         window;
+    Device         device;
+    Renderer       renderer;
+    Scene          scene;
 
     void Update();
     void Render();

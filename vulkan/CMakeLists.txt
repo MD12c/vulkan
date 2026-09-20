@@ -11,8 +11,8 @@ set(VULKAN_BACKEND_SOURCES
     src/Graphics/vkBackend/Device.h
     src/Graphics/vkBackend/Swapchain.h
     src/Graphics/vkBackend/Swapchain.cpp
-    src/Graphics/vkBackend/DescriptorSet.h
-    src/Graphics/vkBackend/DescriptorSet.cpp)
+    src/Graphics/vkBackend/DescriptorSetsManager.h
+    src/Graphics/vkBackend/DescriptorSetsManager.cpp)
 
 set(MODEL_SOURCES src/Graphics/Model/Model.h src/Graphics/Model/Model.cpp)
 

@@ -2,6 +2,7 @@
 #define SCENE_CLASS_H
 
 #include <memory>
+#include <array>
 
 #include "glm/glm.hpp"
 #include "vkBackend\Device.h"
@@ -19,14 +20,15 @@ struct PushConstantData
 class Scene
 {
 private:
-    void loadModels(Device& device);
-
 public:
-    std::unique_ptr<Model> model;
+    std::unique_ptr<Model>  model;
     std::unique_ptr<Camera> camera;
 
     Scene(Device& device, Window& window);
     ~Scene();
+
+    void loadModels(Device& device);
+    void loadCamera(Device& device, Window& window);
 };
 
 #endif

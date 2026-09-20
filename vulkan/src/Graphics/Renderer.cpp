@@ -8,11 +8,8 @@
 #include "Cameras/Camera.h"
 
 Renderer::Renderer(Device& device, Window& window)
-    : device(device), window(window)
+    : device(device), window(window), descriptorSetsManager(device)
 {
-    createDescriptorLayout();
-    createDescriptorPool();
-    allocateDescriptors();
     createPipelineLayout();
     recreateSwapchain();
     createCommandBuffers();
@@ -22,14 +19,6 @@ Renderer::~Renderer()
 {
     vkDeviceWaitIdle(device.device());
     vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(device.device(), globalSetLayout, nullptr);
-    vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
-
-    for (auto& cameraBuffer : cameraBuffers)
-    {
-        vkDestroyBuffer(device.device(), cameraBuffer.buffer, nullptr);
-        vkFreeMemory(device.device(), cameraBuffer.bufferMemory, nullptr);
-    }
 }
 
 void Renderer::drawFrame(const Scene& scene)
@@ -98,8 +87,8 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
 
     pipeline->Bind(commandBuffers[imageIndex]);
-    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &globalDescriptors[currentFrame], 0, nullptr);
-    scene.camera->updateUniforms(cameraBuffers[currentFrame].bufferMemory);
+    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.descriptorSets[currentFrame], 0, nullptr);
+    scene.camera->updateUniforms(descriptorSetsManager.descriptors[0].Buffers[currentFrame].bufferMemory);
     scene.model->Bind(commandBuffers[imageIndex]);
 
     for (int j = 0; j < 4; j++)
@@ -118,76 +107,6 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::createDescriptorLayout()
-{
-    VkDescriptorSetLayoutBinding bufferBinding{};
-    bufferBinding.binding         = 0;
-    bufferBinding.descriptorCount = 1;
-    bufferBinding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
-    bufferBinding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
-
-    VkDescriptorSetLayoutCreateInfo setinfo{};
-    setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    setinfo.pNext        = nullptr;
-    setinfo.flags        = 0;
-    setinfo.bindingCount = 1;
-    setinfo.pBindings    = &bufferBinding;
-
-    vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout);
-}
-
-void Renderer::createDescriptorPool()
-{
-    std::vector<VkDescriptorPoolSize> sizes = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 }  // create a descriptor pool that will hold 10 uniform buffers
-    };
-
-    VkDescriptorPoolCreateInfo pool_info{};
-    pool_info.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags         = 0;
-    pool_info.maxSets       = 10;
-    pool_info.poolSizeCount = (uint32_t)sizes.size();
-    pool_info.pPoolSizes    = sizes.data();
-
-    vkCreateDescriptorPool(device.device(), &pool_info, nullptr, &descriptorPool);
-}
-
-void Renderer::allocateDescriptors()
-{
-    VkBufferUsageFlags    usage      = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-    for (int i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        device.createBuffer(Camera::payloadSize, usage, properties, cameraBuffers[i].buffer, cameraBuffers[i].bufferMemory);
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.pNext              = nullptr;
-        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool     = descriptorPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts        = &globalSetLayout;
-
-        vkAllocateDescriptorSets(device.device(), &allocInfo, &globalDescriptors[i]);
-
-        VkDescriptorBufferInfo binfo{};
-        binfo.buffer = cameraBuffers[i].buffer;
-        binfo.offset = 0;
-        binfo.range  = Camera::payloadSize;
-
-        VkWriteDescriptorSet setWrite{};
-        setWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        setWrite.pNext           = nullptr;
-        setWrite.dstBinding      = 0;
-        setWrite.dstSet          = globalDescriptors[i];
-        setWrite.descriptorCount = 1;
-        setWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        setWrite.pBufferInfo     = &binfo;
-
-        vkUpdateDescriptorSets(device.device(), 1, &setWrite, 0, nullptr);
-    }
-}
-
 void Renderer::createPipelineLayout()
 {
     VkPushConstantRange pushConstantRangeInfo{};
@@ -200,7 +119,7 @@ void Renderer::createPipelineLayout()
     pipelineLayoutInfo.setLayoutCount         = 1;  // descriptors
     pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
     pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
-    pipelineLayoutInfo.pSetLayouts            = &globalSetLayout;
+    pipelineLayoutInfo.pSetLayouts            = &descriptorSetsManager.getVkDescriptorSetLayout();
 
     if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         throw std::runtime_error("[ERROR] failed to create pipeline layout");

@@ -12,9 +12,10 @@
 App::App()
     : window(width, height, name),
       device(window),
-      scene(device, window),
-      renderer(device, window)
+      renderer(device, window),
+      scene(device, window)
 {
+    renderer.descriptorSetsManager.allocDescriptor(Camera::payloadSize, 0);
 }
 
 App::~App()
