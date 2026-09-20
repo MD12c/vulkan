@@ -37,7 +37,7 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
         setinfo.bindingCount = static_cast<uint32_t>(bufferBinding.size());
         setinfo.pBindings    = bufferBinding.data();
 
-        if(vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout) != VK_SUCCESS)
+        if(vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout))
             throw std::runtime_error("[ERROR] Failed to create DescriptorSetLayout");
 
     }
@@ -75,7 +75,8 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts        = &globalSetLayout;
 
-        vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptors[descriptorIndex].descriptorSets[i]);
+        if(vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptors[descriptorIndex].descriptorSets[i]))
+            throw std::runtime_error("[ERROR] Failed to allocate descriptor");
 
         VkDescriptorBufferInfo binfo{};
         binfo.buffer = descriptors[descriptorIndex].Buffers[i].buffer;

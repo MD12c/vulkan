@@ -1,12 +1,19 @@
 #version 460 core
 
-layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec3 aColor;
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aTex;
+layout(location = 3) in vec3 aTangent;
+
+layout(location = 0) out vec3 oPos;
+layout(location = 1) out vec3 oNormal;
+layout(location = 2) out vec2 oTex;
+layout(location = 3) out vec3 oTangent;
 
 layout(push_constant) uniform Push
 {
-    vec2 offset;
-    vec3 color;
+    mat4 model;
+    mat4 normal;
 }
 push;
 
@@ -19,5 +26,8 @@ cameraData;
 
 void main()
 {
-    gl_Position = cameraData.proj * cameraData.view * vec4(aPos + push.offset, 0.0f, 1.0f);
+    gl_Position = cameraData.proj * cameraData.view * push.model * vec4(aPos, 1.0f);
+    oTangent    = normalize(vec3(push.model * vec4(aTangent, 0.0f)));
+    oTex        = aTex;
+    oNormal     = mat3(push.normal) * aNormal;
 }

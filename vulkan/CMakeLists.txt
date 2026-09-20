@@ -14,7 +14,10 @@ set(VULKAN_BACKEND_SOURCES
     src/Graphics/vkBackend/DescriptorSetsManager.h
     src/Graphics/vkBackend/DescriptorSetsManager.cpp)
 
-set(MODEL_SOURCES src/Graphics/Model/Model.h src/Graphics/Model/Model.cpp)
+set(MODEL_SOURCES
+    src/Graphics/Model/Model.h src/Graphics/Model/Model.cpp
+    src/Graphics/Model/Mesh.h src/Graphics/Model/Mesh.cpp
+    src/Graphics/Model/ModelLoader.cpp)
 
 set(CAMERA_SOURCES
     src/Graphics/Cameras/Camera.h src/Graphics/Cameras/Camera.cpp
@@ -29,6 +32,7 @@ target_include_directories(${PROJECT_NAME}
                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 set(APP_OUTPUT_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
+
 message(
   STATUS "Shader source dir: ${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Shaders")
 message(STATUS "App output dir: ${APP_OUTPUT_DIR}")
@@ -39,6 +43,16 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets" "${APP_OUTPUT_DIR}/Assets"
   COMMENT "Copying assets")
+
+# Copy binary file into .exe directory
+add_custom_target(
+  copy_assimp_dll ALL
+  COMMAND
+    ${CMAKE_COMMAND} -E copy
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/binaries/assimp-vc143-mt.dll"
+    "${APP_OUTPUT_DIR}"
+  COMMENT "Copying assimp DLL")
+add_dependencies(${PROJECT_NAME} copy_assets copy_assimp_dll)
 
 # Compile shaders
 find_program(GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin")
@@ -78,8 +92,16 @@ find_package(Vulkan REQUIRED)
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE include/libraries)
 
+# Assimp
+add_library(assimp STATIC IMPORTED)
+set_target_properties(
+  assimp
+  PROPERTIES IMPORTED_LOCATION
+             "${CMAKE_CURRENT_SOURCE_DIR}/include/lib/assimp-vc143-mt.lib")
+target_include_directories(assimp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # linking
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw stb glm Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw stb assimp glm Vulkan::Vulkan)
 
 if(CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

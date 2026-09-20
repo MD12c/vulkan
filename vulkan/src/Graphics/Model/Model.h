@@ -5,36 +5,46 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#include "assimp/Importer.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
+
 #include "..\vkBackend\Device.h"
+#include "Mesh.h"
+#include "Transform.h"
 
 class Model
 {
 public:
-    struct Vertex
+    struct PushConst
     {
-        glm::vec2 pos;
-        glm::vec3 color;
-
-        static std::vector<VkVertexInputBindingDescription>   getBindingDescriptions();
-        static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+        glm::mat4 model;
+        glm::mat4 normal;
     };
 
 private:
-    Device&        device;
-    VkBuffer       vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    uint32_t       vertexCount;
+    Device& device;
 
-    void createVertexBuffers(const std::vector<Vertex>& vertices);
+    std::vector<Mesh> meshes;
+
+    void loadModel(const std::string& path);
+    void processNode(aiNode*, const aiScene*);
+    Mesh processMesh(aiMesh*, const aiScene*);
 
 public:
-    Model(Device& device, const std::vector<Vertex>& vertices);
-    ~Model();
+    std::string directory;
+    std::string fileType;
+
+public:
+    Model(Device& device, const std::string& path);
+    ~Model()                       = default;
     Model(const Model&)            = delete;
     Model& operator=(const Model&) = delete;
 
-    void Bind(VkCommandBuffer commandBuffer);
-    void Draw(VkCommandBuffer commandBuffer);
+    void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, Transform transform) const;
+
+    // void setMeshMetalicRoughness(int meshIndex, float metalic, float roughness);
+    // void setCustomMaterial(MaterialID materialID);
 };
 
 #endif

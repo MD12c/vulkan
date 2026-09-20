@@ -33,10 +33,10 @@ public:
 
     DescriptorSetsManager(Device& device);
     ~DescriptorSetsManager();
-    DescriptorSetsManager(const DescriptorSetsManager&)              = delete;
-    DescriptorSetsManager& operator=(const DescriptorSetsManager&)   = delete;
-    DescriptorSetsManager(const DescriptorSetsManager&&)             = delete;
-    DescriptorSetsManager&& operator=(const DescriptorSetsManager&&) = delete;
+    DescriptorSetsManager(const DescriptorSetsManager&)             = delete;
+    DescriptorSetsManager& operator=(const DescriptorSetsManager&)  = delete;
+    DescriptorSetsManager(const DescriptorSetsManager&&)            = delete;
+    DescriptorSetsManager& operator=(const DescriptorSetsManager&&) = delete;
 
     void allocDescriptor(size_t bufferSize, int descriptorIndex);
 

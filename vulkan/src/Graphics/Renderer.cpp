@@ -53,55 +53,53 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     static int frame = 0;
     frame            = (frame + 1) % 10000;
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
-        throw std::runtime_error("[ERROR] failed to begin recording command buffer");
+        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
+            throw std::runtime_error("[ERROR] failed to begin recording command buffer");
+    }
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass        = swapchain->getRenderPass();
-    renderPassInfo.framebuffer       = swapchain->getFrameBuffer(static_cast<uint32_t>(imageIndex));
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = swapchain->getSwapChainExtent();
+    {
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color                = { windowRGB[0], windowRGB[1], windowRGB[2], 1.0f };
+        clearValues[1].depthStencil.depth   = 1.0f;
+        clearValues[1].depthStencil.stencil = 0;
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color                = { windowRGB[0], windowRGB[1], windowRGB[2], 1.0f };
-    clearValues[1].depthStencil.depth   = 1.0f;
-    clearValues[1].depthStencil.stencil = 0;
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass        = swapchain->getRenderPass();
+        renderPassInfo.framebuffer       = swapchain->getFrameBuffer(static_cast<uint32_t>(imageIndex));
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = swapchain->getSwapChainExtent();
+        renderPassInfo.clearValueCount   = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues      = clearValues.data();
 
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues    = clearValues.data();
+        vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    }
 
-    vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    VkViewport viewport{};
-    viewport.x        = 0.0f;
-    viewport.y        = 0.0f;
-    viewport.width    = static_cast<float>(swapchain->getSwapChainExtent().width);
-    viewport.height   = static_cast<float>(swapchain->getSwapChainExtent().height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    VkRect2D scissor{ { 0, 0 }, swapchain->getSwapChainExtent() };
-    vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
-    vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+    {
+        VkViewport viewport{};
+        viewport.x        = 0.0f;
+        viewport.y        = 0.0f;
+        viewport.width    = static_cast<float>(swapchain->getSwapChainExtent().width);
+        viewport.height   = static_cast<float>(swapchain->getSwapChainExtent().height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        VkRect2D scissor{ { 0, 0 }, swapchain->getSwapChainExtent() };
+        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+    }
 
     pipeline->Bind(commandBuffers[imageIndex]);
     vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.descriptors[0].descriptorSets[currentFrame], 0, nullptr);
     scene.camera->updateUniforms(descriptorSetsManager.descriptors[0].Buffers[currentFrame].bufferMemory);
-    scene.model->Bind(commandBuffers[imageIndex]);
 
-    for (int j = 0; j < 4; j++)
-    {
-        PushConstantData push{};
-        push.offset = { -0.5f + frame * 0.0002f, -0.4f + j * 0.25f };
-        push.color  = { 0.0f, 0.0f, 0.2f + 0.2f * j };
-        vkCmdPushConstants(commandBuffers[imageIndex], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstantData), &push);
-        scene.model->Draw(commandBuffers[imageIndex]);
-    }
+    scene.model->Draw(commandBuffers[imageIndex], pipelineLayout, Transform());
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
-    if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS)
+    if (vkEndCommandBuffer(commandBuffers[imageIndex]))
         throw std::runtime_error("[ERROR] failed to record command buffers");
 
     currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
@@ -112,7 +110,7 @@ void Renderer::createPipelineLayout()
     VkPushConstantRange pushConstantRangeInfo{};
     pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRangeInfo.offset     = 0;
-    pushConstantRangeInfo.size       = sizeof(PushConstantData);
+    pushConstantRangeInfo.size       = sizeof(Model::PushConst);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

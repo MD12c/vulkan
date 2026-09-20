@@ -19,6 +19,7 @@ App::App()
 
 App::~App()
 {
+    vkDeviceWaitIdle(device.device());
 }
 
 void App::Update()
