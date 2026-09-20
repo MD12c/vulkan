@@ -1,5 +1,9 @@
 #include "DescriptorSetsManager.h"
 
+#include "../Cameras/Camera.h"
+
+#include <stdexcept>
+
 DescriptorSetsManager::DescriptorSetsManager(Device& device)
     : device(device)
 {
@@ -15,7 +19,8 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
         pool_info.poolSizeCount = (uint32_t)sizes.size();
         pool_info.pPoolSizes    = sizes.data();
 
-        vkCreateDescriptorPool(device.device(), &pool_info, nullptr, &descriptorPool);
+        if (vkCreateDescriptorPool(device.device(), &pool_info, nullptr, &descriptorPool))
+            throw std::runtime_error("[ERROR] Failed to create DescriptorPool");
     }
 
     // Camera buffer
@@ -32,8 +37,12 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
         setinfo.bindingCount = static_cast<uint32_t>(bufferBinding.size());
         setinfo.pBindings    = bufferBinding.data();
 
-        vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout);
+        if(vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout) != VK_SUCCESS)
+            throw std::runtime_error("[ERROR] Failed to create DescriptorSetLayout");
+
     }
+
+    allocDescriptor(Camera::payloadSize, 0);
 }
 
 DescriptorSetsManager::~DescriptorSetsManager()
@@ -66,7 +75,7 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts        = &globalSetLayout;
 
-        vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSets[i]);
+        vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptors[descriptorIndex].descriptorSets[i]);
 
         VkDescriptorBufferInfo binfo{};
         binfo.buffer = descriptors[descriptorIndex].Buffers[i].buffer;
@@ -77,7 +86,7 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
         setWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         setWrite.pNext           = nullptr;
         setWrite.dstBinding      = 0;
-        setWrite.dstSet          = descriptorSets[i];
+        setWrite.dstSet          = descriptors[descriptorIndex].descriptorSets[i];
         setWrite.descriptorCount = 1;
         setWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         setWrite.pBufferInfo     = &binfo;

@@ -87,7 +87,7 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
 
     pipeline->Bind(commandBuffers[imageIndex]);
-    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.descriptorSets[currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.descriptors[0].descriptorSets[currentFrame], 0, nullptr);
     scene.camera->updateUniforms(descriptorSetsManager.descriptors[0].Buffers[currentFrame].bufferMemory);
     scene.model->Bind(commandBuffers[imageIndex]);
 

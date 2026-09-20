@@ -15,7 +15,6 @@ App::App()
       renderer(device, window),
       scene(device, window)
 {
-    renderer.descriptorSetsManager.allocDescriptor(Camera::payloadSize, 0);
 }
 
 App::~App()

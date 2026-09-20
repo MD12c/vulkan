@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "Device.h"
-#include "../Scene.h"
 #include "Globals.h"
 
 class DescriptorSetsManager
@@ -17,8 +16,6 @@ private:
     VkDescriptorPool      descriptorPool;
 
 public:
-    std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
-
     static constexpr size_t                                       NUM_BUFFER_BINDINGS = 1;
     std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};
 
@@ -29,7 +26,8 @@ public:
             VkBuffer       buffer;
             VkDeviceMemory bufferMemory;
         };
-        std::array<Buffer, Globals::MAX_FRAMES_IN_FLIGHT> Buffers;
+        std::array<Buffer, Globals::MAX_FRAMES_IN_FLIGHT>          Buffers;
+        std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
     };
     std::array<Descriptor, NUM_BUFFER_BINDINGS> descriptors;
 
