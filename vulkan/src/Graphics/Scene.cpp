@@ -9,7 +9,8 @@
 Scene::Scene(Device& device, Window& window)
 {
     {
-        model = std::make_unique<Model>(device, "Assets/Models/crow/scene.gltf");
+        // model = std::make_unique<Model>(device, "Assets/Models/crow/scene.gltf");
+        model = std::make_unique<Model>(device, "Assets/Models/ignore/sponza_palace/scene.gltf");
     }
 
     {

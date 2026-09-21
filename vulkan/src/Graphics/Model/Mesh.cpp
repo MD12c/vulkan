@@ -5,28 +5,50 @@
 Mesh::Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
     : device(device), vertices(vertices), indices(indices)  // sphere(computeBoundingSphere(vertices))
 {
-    // no need to auto flush/send since COHERENT_BIT makes it automatically}
-    VkMemoryPropertyFlags properties       = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    VkDeviceSize          vertexBufferSize = sizeof(vertices[0]) * static_cast<uint32_t>(vertices.size());
-    VkDeviceSize          indexBufferSize  = sizeof(indices[0]) * static_cast<uint32_t>(indices.size());
+    VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * static_cast<uint32_t>(vertices.size());
+    VkDeviceSize indexBufferSize  = sizeof(indices[0]) * static_cast<uint32_t>(indices.size());
 
-    // Note Host -> CPU, Device -> GPU
-    device.createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, properties, vertexBuffer, vertexBufferMemory);
-    device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, properties, indexBuffer, indexBufferMemory);
+    VkBuffer       tempVertexBuffer;
+    VkDeviceMemory tempVertexBufferMemory;
+    VkBuffer       tempIndexBuffer;
+    VkDeviceMemory tempIndexBufferMemory;
 
-    {
-        void* data;
-        vkMapMemory(device.device(), vertexBufferMemory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
-        vkUnmapMemory(device.device(), vertexBufferMemory);
+    {  // no need to auto flush/send since COHERENT_BIT makes it automatically}
+        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        // Note Host -> CPU, Device -> GPU
+        device.createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, tempVertexBuffer, tempVertexBufferMemory);
+        device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, tempIndexBuffer, tempIndexBufferMemory);
+
+        {
+            void* data;
+            vkMapMemory(device.device(), tempVertexBufferMemory, 0, vertexBufferSize, 0, &data);
+            memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
+            vkUnmapMemory(device.device(), tempVertexBufferMemory);
+        }
+
+        {
+            void* data;
+            vkMapMemory(device.device(), tempIndexBufferMemory, 0, indexBufferSize, 0, &data);
+            memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
+            vkUnmapMemory(device.device(), tempIndexBufferMemory);
+        }
     }
 
     {
-        void* data;
-        vkMapMemory(device.device(), indexBufferMemory, 0, indexBufferSize, 0, &data);
-        memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
-        vkUnmapMemory(device.device(), indexBufferMemory);
+        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+        device.createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, properties, vertexBuffer, vertexBufferMemory);
+        device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, properties, indexBuffer, indexBufferMemory);
+
+        device.copyBuffer(tempVertexBuffer, vertexBuffer, vertexBufferSize);
+        device.copyBuffer(tempIndexBuffer, indexBuffer, indexBufferSize);
     }
+
+    vkDestroyBuffer(device.device(), tempVertexBuffer, nullptr);
+    vkFreeMemory(device.device(), tempVertexBufferMemory, nullptr);
+    vkDestroyBuffer(device.device(), tempIndexBuffer, nullptr);
+    vkFreeMemory(device.device(), tempIndexBufferMemory, nullptr);
 }
 
 Mesh::Mesh(Mesh&& other) noexcept

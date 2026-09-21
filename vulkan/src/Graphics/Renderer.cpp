@@ -96,7 +96,7 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.descriptors[0].descriptorSets[currentFrame], 0, nullptr);
     scene.camera->updateUniforms(descriptorSetsManager.descriptors[0].Buffers[currentFrame].bufferMemory);
 
-    scene.model->Draw(commandBuffers[imageIndex], pipelineLayout, Transform());
+    scene.model->Draw(commandBuffers[imageIndex], pipelineLayout, Transform({ {}, glm::quat(0.0f, 1.0f, 0.0f, 0.0f), glm::vec3(0.2f) }));
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
     if (vkEndCommandBuffer(commandBuffers[imageIndex]))
