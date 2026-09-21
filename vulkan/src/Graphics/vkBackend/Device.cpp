@@ -558,7 +558,8 @@ VkCommandBuffer Device::beginSingleTimeCommands()
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer);
+    if (vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer))
+        throw std::runtime_error("failed to allocate command buffer");
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -572,7 +573,8 @@ VkCommandBuffer Device::beginSingleTimeCommands()
 /// @param commandBuffer handle to the command buffer recording, got by `beginSingleTimeCommands()`
 void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
-    vkEndCommandBuffer(commandBuffer);
+    if (vkEndCommandBuffer(commandBuffer))
+        throw std::runtime_error("failed to end command buffer");
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -583,10 +585,14 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
     VkFence fence;
-    vkCreateFence(device_, &fenceInfo, nullptr, &fence);
+    if (vkCreateFence(device_, &fenceInfo, nullptr, &fence))
+        throw std::runtime_error("failed to create fence");
 
-    vkQueueSubmit(graphicsQueue_, 1, &submitInfo, fence);      // signal THIS fence when THIS submission finishes
-    vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_MAX);  // CPU blocks only until THIS work is done
+    if (vkQueueSubmit(graphicsQueue_, 1, &submitInfo, fence))  // signal THIS fence when THIS submission finishes
+        throw std::runtime_error("failed to submit queue");
+
+    if (vkWaitForFences(device_, 1, &fence, VK_TRUE, UINT64_MAX))  // CPU blocks only until THIS work is done
+        throw std::runtime_error("failed to wait for fence");
 
     vkDestroyFence(device_, fence, nullptr);
     vkFreeCommandBuffers(device_, commandPool, 1, &commandBuffer);
