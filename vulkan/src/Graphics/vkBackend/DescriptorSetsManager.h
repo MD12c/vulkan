@@ -2,7 +2,6 @@
 #define DESCRIPTORSETS_MANAGER_CLASS_H
 
 #include <array>
-#include <vector>
 
 #include "Device.h"
 #include "Globals.h"
@@ -12,13 +11,12 @@ class DescriptorSetsManager
 private:
     Device& device;
 
-    VkDescriptorSetLayout globalSetLayout;
-    VkDescriptorPool      descriptorPool;
+    VkDescriptorPool descriptorPool;
+
+    VkDescriptorSetLayout globalSetLayout;  // ordered collection of VkDescriptorSetLayoutBinding
+    VkDescriptorSetLayout textureSetLayout;
 
 public:
-    static constexpr size_t                                       NUM_BUFFER_BINDINGS = 1;
-    std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};
-
     struct Descriptor
     {
         struct Buffer
@@ -29,7 +27,10 @@ public:
         std::array<Buffer, Globals::MAX_FRAMES_IN_FLIGHT>          Buffers;
         std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
     };
-    std::array<Descriptor, NUM_BUFFER_BINDINGS> descriptors;
+
+    static constexpr size_t                                       NUM_BUFFER_BINDINGS = 1;
+    std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};  // binding number, type
+    std::array<Descriptor, NUM_BUFFER_BINDINGS>                   bufferDescriptors{};
 
     DescriptorSetsManager(Device& device);
     ~DescriptorSetsManager();
@@ -40,7 +41,9 @@ public:
 
     void allocDescriptor(size_t bufferSize, int descriptorIndex);
 
-    VkDescriptorSetLayout& getVkDescriptorSetLayout() { return globalSetLayout; }
+    VkDescriptorSetLayout& getGlobalSetLayouts() { return globalSetLayout; }
+    VkDescriptorSetLayout& getTextureSetLayout() { return textureSetLayout; }
+    VkDescriptorPool&      getDescriptorPool() { return descriptorPool; }
 };
 
 #endif

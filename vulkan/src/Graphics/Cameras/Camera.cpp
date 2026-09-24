@@ -1,6 +1,6 @@
 #include "Camera.h"
 
-#include "Globals.h"
+#include "vulkan/vulkan_core.h"
 #include "../Window.h"
 
 Camera::Camera(Device& device, Window& window) : device(device), window(window)

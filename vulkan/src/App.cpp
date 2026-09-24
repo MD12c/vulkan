@@ -1,9 +1,5 @@
 #include "App.h"
 
-#include <iostream>
-#include <stdexcept>
-#include <array>
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -13,8 +9,11 @@ App::App()
     : window(width, height, name),
       device(window),
       renderer(device, window),
-      scene(device, window)
+      scene(device)
 {
+    scene.loadCamera(device, window);
+    scene.loadModels(renderer);
+    scene.tex = renderer.textureManager.loadTexture(device, "Assets/Models/crow/diffuse.png");
 }
 
 App::~App()
@@ -25,7 +24,7 @@ App::~App()
 void App::Update()
 {
     window.updateFPS();
-    
+
     timeCrnt = glfwGetTime();
     timeDiff = timeCrnt - timePrev;
     if (timeDiff >= 1.0 / 60.0)

@@ -1,11 +1,7 @@
 #ifndef APP_CLASS_H
 #define APP_CLASS_H
 
-#include <memory>
-#include <vector>
-
 #include "Graphics/Renderer.h"
-#include "Graphics\vkBackend\Pipeline.h"
 #include "Graphics/Scene.h"
 
 class App

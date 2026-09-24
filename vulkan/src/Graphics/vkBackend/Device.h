@@ -1,7 +1,6 @@
 #pragma once
 
 // std lib headers
-#include <string>
 #include <vector>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -88,6 +87,7 @@ public:
     void            endSingleTimeCommands(VkCommandBuffer commandBuffer);
     void            copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void            copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+    void            transitionImageLayout(VkImage image, VkImageSubresourceRange range, VkImageLayout oldLayout, VkImageLayout newLayout);
 
     void createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 

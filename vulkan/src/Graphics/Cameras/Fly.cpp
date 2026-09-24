@@ -1,6 +1,5 @@
 #include "Fly.h"
 
-#include "Globals.h"
 #include "../Window.h"
 
 CameraFly::CameraFly(Device& device, Window& window, float FOVdeg, float nearPlane, float farPlane)

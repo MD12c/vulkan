@@ -1,14 +1,8 @@
 #ifndef CAMERA_CLASS_H
 #define CAMERA_CLASS_H
 
-#include <vector>
-#include <array>
-
-#include "vulkan/vulkan.h"
-
 #include "..\vkBackend\Device.h"
 #include "../Window.h"
-#include "Globals.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -45,7 +39,7 @@ public:
     static constexpr VkDeviceSize payloadSize = sizeof(Payload);
 
     Camera(Device& device, Window& window);
-    ~Camera()                     = default;
+    virtual ~Camera()             = default;
     Camera(const Camera&)         = delete;
     void operator=(const Camera&) = delete;
     Camera(Camera&&)              = delete;

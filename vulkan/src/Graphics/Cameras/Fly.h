@@ -13,6 +13,8 @@ private:
 
 public:
     CameraFly(Device& device, Window& window, float FOVdeg, float nearPlane, float farPlane);
+    virtual ~CameraFly() = default;
+
     void  updateScreenSize() override;
     void  Inputs() override;
     void  onScroll(GLFWwindow* win, double xoffset, double yoffset) override;

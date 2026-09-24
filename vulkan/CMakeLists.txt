@@ -19,6 +19,11 @@ set(MODEL_SOURCES
     src/Graphics/Model/Mesh.h src/Graphics/Model/Mesh.cpp
     src/Graphics/Model/ModelLoader.cpp)
 
+set(TEXTURE_SOURCES
+    src/Graphics/Texture/Texture.h src/Graphics/Texture/Texture.cpp
+    src/Graphics/Texture/TextureManager.h
+    src/Graphics/Texture/TextureManager.cpp)
+
 set(CAMERA_SOURCES
     src/Graphics/Cameras/Camera.h src/Graphics/Cameras/Camera.cpp
     src/Graphics/Cameras/Fly.h src/Graphics/Cameras/Fly.cpp
@@ -26,7 +31,7 @@ set(CAMERA_SOURCES
 
 add_executable(
   ${PROJECT_NAME} ${CORE_SOURCES} ${GRAPHICS_SOURCES} ${VULKAN_BACKEND_SOURCES}
-                  ${MODEL_SOURCES} ${CAMERA_SOURCES})
+                  ${MODEL_SOURCES} ${CAMERA_SOURCES} ${TEXTURE_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
                            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -101,7 +106,8 @@ set_target_properties(
 target_include_directories(assimp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # linking
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw stb assimp glm Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw stb assimp glm
+                                              Vulkan::Vulkan)
 
 if(CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

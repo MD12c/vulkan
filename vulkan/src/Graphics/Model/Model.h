@@ -15,13 +15,6 @@
 
 class Model
 {
-public:
-    struct PushConst
-    {
-        glm::mat4 model;
-        glm::mat4 normal;
-    };
-
 private:
     Device& device;
 
@@ -35,7 +28,12 @@ public:
     std::string directory;
     std::string fileType;
 
-public:
+    struct PushConst
+    {
+        glm::mat4 model;
+        glm::mat4 normal;
+    };
+
     Model(Device& device, const std::string& path);
     ~Model()                       = default;
     Model(const Model&)            = delete;

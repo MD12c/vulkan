@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "../Texture/TextureManager.h"
+
 void Model::loadModel(const std::string& path)
 {
     Assimp::Importer importer;
@@ -34,8 +36,8 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 
 Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 {
-    std::vector<Vertex>  vertices(mesh->mNumVertices);
-    std::vector<GLuint>  indices(mesh->mNumFaces * 3);
+    std::vector<Vertex> vertices(mesh->mNumVertices);
+    std::vector<GLuint> indices(mesh->mNumFaces * 3);
     // int                  materialID;
 
     // Vertices
@@ -43,29 +45,17 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
             // positions
-            vertices[i].position = glm::vec3(
-                mesh->mVertices[i].x,
-                mesh->mVertices[i].y,
-                mesh->mVertices[i].z);
+            vertices[i].position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
 
             // normals
             if (mesh->HasNormals())
-            {
-                vertices[i].normal = glm::vec3(
-                    mesh->mNormals[i].x,
-                    mesh->mNormals[i].y,
-                    mesh->mNormals[i].z);
-            }
+                vertices[i].normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
             else
                 vertices[i].normal = glm::vec3(0.0f, 0.0f, 0.0f);
 
             // texture coords
             if (mesh->mTextureCoords[0])
-            {
-                vertices[i].texUV = glm::vec2(
-                    mesh->mTextureCoords[0][i].x,
-                    mesh->mTextureCoords[0][i].y);
-            }
+                vertices[i].texUV = glm::vec2(mesh->mTextureCoords[0][i].x, 1.0f - mesh->mTextureCoords[0][i].y);
             else
                 vertices[i].texUV = glm::vec2(0.0f, 0.0f);
         }
@@ -73,7 +63,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 
     // indices
     {
-        unsigned int         index = 0;
+        unsigned int index = 0;
         for (unsigned int i = 0; i < mesh->mNumFaces; i++)
         {
             const aiFace& face = mesh->mFaces[i];
@@ -133,6 +123,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
             return (relPath.length && success) ? directory + "/" + relPath.C_Str() : "";
         };
 
+        findPath(aiTextureType_DIFFUSE);
+
         // for (int i = aiTextureType_DIFFUSE; i <= aiTextureType_GLTF_METALLIC_ROUGHNESS; i++)
         // {
         //     aiTextureType type = static_cast<aiTextureType>(i);
@@ -174,7 +166,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     }
 
     // std::cout << "mesh verts: " << mesh->mNumVertices << ", faces: " << mesh->mNumFaces << std::endl;
-    return std::move(Mesh(device, vertices, indices));
+    return Mesh(device, vertices, indices);
 }
 
 // void Model::setCustomMaterial(MaterialID materialID)

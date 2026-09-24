@@ -12,7 +12,6 @@ void Model::Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
 {
     for (const auto& mesh : meshes)
     {
-        sizeof(PushConst);
         PushConst push{};
         push.model  = transform.model;
         push.normal = glm::mat4(transform.normal);

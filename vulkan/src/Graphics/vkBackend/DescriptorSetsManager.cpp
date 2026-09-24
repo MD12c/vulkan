@@ -9,13 +9,14 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
 {
     {
         std::vector<VkDescriptorPoolSize> sizes = {
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 }  // create a descriptor pool that will hold 10 uniform buffers
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },  // create a descriptor pool that will hold 10 uniform buffers
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 }
         };
 
         VkDescriptorPoolCreateInfo pool_info{};
         pool_info.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         pool_info.flags         = 0;
-        pool_info.maxSets       = 10;
+        pool_info.maxSets       = 110;
         pool_info.poolSizeCount = (uint32_t)sizes.size();
         pool_info.pPoolSizes    = sizes.data();
 
@@ -37,19 +38,35 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
         setinfo.bindingCount = static_cast<uint32_t>(bufferBinding.size());
         setinfo.pBindings    = bufferBinding.data();
 
-        if(vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout))
+        if (vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout))
             throw std::runtime_error("[ERROR] Failed to create DescriptorSetLayout");
-
     }
-
+    
     allocDescriptor(Camera::payloadSize, 0);
+
+    // Samplers
+    VkDescriptorSetLayoutBinding samplerBinding{};
+    samplerBinding.binding         = 0;
+    samplerBinding.descriptorCount = 1;
+    samplerBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerBinding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo setinfo{};
+    setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    setinfo.bindingCount = 1;
+    setinfo.pBindings    = &samplerBinding;
+
+    if (vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &textureSetLayout))
+        throw std::runtime_error("[ERROR] Failed to create texture DescriptorSetLayout");
+
 }
 
 DescriptorSetsManager::~DescriptorSetsManager()
 {
     vkDestroyDescriptorSetLayout(device.device(), globalSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device.device(), textureSetLayout, nullptr);
     vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
-    for (const auto& descriptor : descriptors)
+    for (const auto& descriptor : bufferDescriptors)
     {
         for (const auto& Buffer : descriptor.Buffers)
         {
@@ -66,7 +83,7 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
 
     for (int i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
     {
-        device.createBuffer(bufferSize, usage, properties, descriptors[descriptorIndex].Buffers[i].buffer, descriptors[descriptorIndex].Buffers[i].bufferMemory);
+        device.createBuffer(bufferSize, usage, properties, bufferDescriptors[descriptorIndex].Buffers[i].buffer, bufferDescriptors[descriptorIndex].Buffers[i].bufferMemory);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.pNext              = nullptr;
@@ -75,11 +92,11 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts        = &globalSetLayout;
 
-        if(vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptors[descriptorIndex].descriptorSets[i]))
+        if (vkAllocateDescriptorSets(device.device(), &allocInfo, &bufferDescriptors[descriptorIndex].descriptorSets[i]))
             throw std::runtime_error("[ERROR] Failed to allocate descriptor");
 
         VkDescriptorBufferInfo binfo{};
-        binfo.buffer = descriptors[descriptorIndex].Buffers[i].buffer;
+        binfo.buffer = bufferDescriptors[descriptorIndex].Buffers[i].buffer;
         binfo.offset = 0;
         binfo.range  = bufferSize;
 
@@ -87,7 +104,7 @@ void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorInd
         setWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         setWrite.pNext           = nullptr;
         setWrite.dstBinding      = 0;
-        setWrite.dstSet          = descriptors[descriptorIndex].descriptorSets[i];
+        setWrite.dstSet          = bufferDescriptors[descriptorIndex].descriptorSets[i];
         setWrite.descriptorCount = 1;
         setWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         setWrite.pBufferInfo     = &binfo;

@@ -1,7 +1,6 @@
 #ifndef RENDERER_CLASS_H
 #define RENDERER_CLASS_H
 
-#include "vulkan/vulkan.h"
 #include "vkBackend/Device.h"
 #include "vkBackend/Pipeline.h"
 #include "vkBackend/Swapchain.h"
@@ -9,7 +8,7 @@
 #include "Window.h"
 #include "Scene.h"
 
-#include <array>
+#include "Texture/TextureManager.h"
 
 class Renderer
 {
@@ -34,6 +33,7 @@ private:
 
 public:
     DescriptorSetsManager descriptorSetsManager;
+    TextureManager        textureManager;
 
     Renderer(Device& device, Window& window);
     ~Renderer();

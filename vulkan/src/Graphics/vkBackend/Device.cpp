@@ -645,6 +645,25 @@ void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
     endSingleTimeCommands(commandBuffer);
 }
 
+void Device::transitionImageLayout(VkImage image, VkImageSubresourceRange range, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+    VkImageMemoryBarrier imageBarrier_toTransfer = {};
+    imageBarrier_toTransfer.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageBarrier_toTransfer.oldLayout            = oldLayout;
+    imageBarrier_toTransfer.newLayout            = newLayout;
+    imageBarrier_toTransfer.image                = image;
+    imageBarrier_toTransfer.subresourceRange     = range;
+    imageBarrier_toTransfer.srcAccessMask        = 0;
+    imageBarrier_toTransfer.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    // barrier the image into the transfer-receive layout
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toTransfer);
+
+    endSingleTimeCommands(commandBuffer);
+}
+
 /// @brief Safely allocates the image buffer with the specified types and binds it to the `VkImage` handle
 ///
 /// 1. Creates a `VkImage` at image with the specified `imageInfo`

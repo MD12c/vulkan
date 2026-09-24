@@ -7,6 +7,8 @@ layout(location = 3) in vec3 aTangent;
 
 layout(location = 0) out vec4 FragColor;
 
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
+
 // mat3 getTBN()
 // {
 //     vec3 N = normalize(aNormal);
@@ -67,5 +69,5 @@ layout(location = 0) out vec4 FragColor;
 
 void main()
 {
-    FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    FragColor = vec4(texture(texSampler, aTex));
 }
