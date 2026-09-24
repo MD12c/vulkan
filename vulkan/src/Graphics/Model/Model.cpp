@@ -2,10 +2,15 @@
 
 #include <cassert>
 
-Model::Model(Device& device, const std::string& path)
-    : device(device)
+Model::Model()
 {
-    loadModel(path);
+}
+
+Model::Model(Model&& other) noexcept
+    : meshes(std::move(other.meshes)), directory(other.directory), fileType(other.fileType)
+{
+    other.directory = "Moved";
+    other.fileType  = "Moved";
 }
 
 void Model::Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, Transform transform) const

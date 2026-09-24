@@ -2,6 +2,7 @@
 #define DESCRIPTORSETS_MANAGER_CLASS_H
 
 #include <array>
+#include <cstddef>
 
 #include "Device.h"
 #include "Globals.h"
@@ -17,6 +18,9 @@ private:
     VkDescriptorSetLayout textureSetLayout;
 
 public:
+    static constexpr size_t NUM_BUFFER_BINDINGS  = 1;
+    static constexpr size_t NUM_SAMPLER_BINDINGS = 5;
+
     struct Descriptor
     {
         struct Buffer
@@ -27,10 +31,7 @@ public:
         std::array<Buffer, Globals::MAX_FRAMES_IN_FLIGHT>          Buffers;
         std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
     };
-
-    static constexpr size_t                                       NUM_BUFFER_BINDINGS = 1;
-    std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};  // binding number, type
-    std::array<Descriptor, NUM_BUFFER_BINDINGS>                   bufferDescriptors{};
+    std::array<Descriptor, NUM_BUFFER_BINDINGS> bufferDescriptors{};
 
     DescriptorSetsManager(Device& device);
     ~DescriptorSetsManager();

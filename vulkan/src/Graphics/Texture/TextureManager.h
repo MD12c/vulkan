@@ -13,13 +13,16 @@ class Device;
 class TextureManager
 {
 private:
-    DescriptorSetsManager&                                    descriptorSetsManager;
-    std::unordered_map<std::string, std::shared_ptr<Texture>> textures;  // TODO improve lookup
+    Device&                device;
+    DescriptorSetsManager& descriptorSetsManager;
+
+    std::unordered_map<Texture::TextureType, std::unordered_map<std::string, std::shared_ptr<Texture>>> loadedTextures;  // TODO improve lookup
 
 public:
-    TextureManager(DescriptorSetsManager& descriptorSetsManager);
+    VkDescriptorSet descriptorSet;
+    TextureManager(Device& device, DescriptorSetsManager& descriptorSetsManager);
 
-    std::shared_ptr<Texture> loadTexture(Device& device, std::string filePath);
+    std::shared_ptr<Texture> loadTexture(Device& device, Texture::TextureType textureType, std::string filePath);
 };
 
 #endif

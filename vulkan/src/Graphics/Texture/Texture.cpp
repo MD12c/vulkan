@@ -1,7 +1,7 @@
 #include "Texture.h"
 
-Texture::Texture(Device& device, DescriptorSetsManager& descriptorSetsManager, unsigned char* bytes, int widthImg, int heightImg)
-    : device(device)
+Texture::Texture(Device& device, TextureType textureType, VkDescriptorSet descriptorSet, DescriptorSetsManager& descriptorSetsManager, unsigned char* bytes, int widthImg, int heightImg)
+    : device(device), textureType(textureType)
 {
     void*          pixel_ptr = bytes;
     VkBuffer       tempImageBuffer;
@@ -98,15 +98,6 @@ Texture::Texture(Device& device, DescriptorSetsManager& descriptorSetsManager, u
     }
 
     {
-        VkDescriptorSetLayout textureLayout = descriptorSetsManager.getTextureSetLayout();
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool     = descriptorSetsManager.getDescriptorPool();
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts        = &textureLayout;
-
-        vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSet);  // Texture's own member
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -115,7 +106,7 @@ Texture::Texture(Device& device, DescriptorSetsManager& descriptorSetsManager, u
 
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet          = descriptorSet;  // Texture's own member
+        write.dstSet          = descriptorSet;
         write.dstBinding      = 0;
         write.descriptorCount = 1;
         write.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

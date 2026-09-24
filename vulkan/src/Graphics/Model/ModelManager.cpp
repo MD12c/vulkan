@@ -1,10 +1,20 @@
-#include "Model.h"
+#include "ModelManager.h"
 
 #include <iostream>
 
-#include "../Texture/TextureManager.h"
+#include "assimp/postprocess.h"
+#include "assimp/Importer.hpp"
 
-void Model::loadModel(const std::string& path)
+ModelManager::ModelManager(Device& device, MaterialManager& materialManager)
+    : device(device), materialManager(materialManager)
+{
+}
+
+ModelManager::~ModelManager()
+{
+}
+
+void ModelManager::loadModel(std::vector<Model>& models, const std::string& path)
 {
     Assimp::Importer importer;
     const aiScene*   scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals);
@@ -16,29 +26,33 @@ void Model::loadModel(const std::string& path)
     }
     std::cout << "Loading model from: " << path << std::endl;
 
-    directory = path.substr(0, path.find_last_of('/'));
-    fileType  = path.substr(path.find_last_of('.') + 1);
+    models.emplace_back();
 
-    processNode(scene->mRootNode, scene);
+    ModelID modelID = static_cast<ModelID>(models.size() - 1);
+
+    models[modelID].directory = path.substr(0, path.find_last_of('/'));
+    models[modelID].fileType  = path.substr(path.find_last_of('.') + 1);
+
+    processNode(scene->mRootNode, scene, modelID, models);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene)
+void ModelManager::processNode(aiNode* node, const aiScene* scene, ModelID modelID, std::vector<Model>& models)
 {
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        models[modelID].meshes.push_back(processMesh(mesh, scene, modelID, models));
     }
 
     for (unsigned int i = 0; i < node->mNumChildren; i++)
-        processNode(node->mChildren[i], scene);
+        processNode(node->mChildren[i], scene, modelID, models);
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+Mesh ModelManager::processMesh(aiMesh* mesh, const aiScene* scene, ModelID modelID, std::vector<Model>& models)
 {
     std::vector<Vertex> vertices(mesh->mNumVertices);
     std::vector<GLuint> indices(mesh->mNumFaces * 3);
-    // int                  materialID;
+    int                 materialID;
 
     // Vertices
     {
@@ -120,21 +134,19 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         {
             aiString relPath;
             bool     success = (material->GetTexture(type, 0, &relPath) == AI_SUCCESS);
-            return (relPath.length && success) ? directory + "/" + relPath.C_Str() : "";
+            return (relPath.length && success) ? models[modelID].directory + "/" + relPath.C_Str() : "";
         };
 
-        findPath(aiTextureType_DIFFUSE);
+        for (int i = aiTextureType_DIFFUSE; i <= aiTextureType_GLTF_METALLIC_ROUGHNESS; i++)
+        {
+            aiTextureType type = static_cast<aiTextureType>(i);
+            std::string   path = findPath(type);
+            if (path == "")
+                continue;
 
-        // for (int i = aiTextureType_DIFFUSE; i <= aiTextureType_GLTF_METALLIC_ROUGHNESS; i++)
-        // {
-        //     aiTextureType type = static_cast<aiTextureType>(i);
-        //     std::string   path = findPath(type);
-        //     if (path == "")
-        //         continue;
-
-        //     const char* name = aiTextureTypeToString(type);
-        //     std::cout << name << ": " << path << std::endl;
-        // }
+            const char* name = aiTextureTypeToString(type);
+            std::cout << name << ": " << path << std::endl;
+        }
 
         // materialID = MaterialManager::LoadMaterialSpecular(
         //     std::string(material->GetName().C_Str()),
@@ -145,14 +157,15 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         //     findPath(aiTextureType_DISPLACEMENT));
 
         // if (fileType == "gltf" || fileType == "glb")
-        //     materialID = MaterialManager::LoadMaterialPBRgltf(
-        //         std::string(material->GetName().C_Str()),
-        //         0.85f, 0.0f,
-        //         findPath(aiTextureType_DIFFUSE),
-        //         findPath(aiTextureType_AMBIENT_OCCLUSION),
-        //         findPath(aiTextureType_GLTF_METALLIC_ROUGHNESS),
-        //         findPath(aiTextureType_NORMALS),
-        //         findPath(aiTextureType_DISPLACEMENT));
+
+        MaterialManager::PBR_GLTF_LoadInfo pbr_gltf_info{};
+        pbr_gltf_info.albedoMapPath           = findPath(aiTextureType_DIFFUSE);
+        pbr_gltf_info.aoMapPath               = findPath(aiTextureType_AMBIENT_OCCLUSION);
+        pbr_gltf_info.metalicRoughnessMapPath = findPath(aiTextureType_GLTF_METALLIC_ROUGHNESS);
+        pbr_gltf_info.normalMapPath           = findPath(aiTextureType_NORMALS);
+        pbr_gltf_info.displacementMapPath     = findPath(aiTextureType_DISPLACEMENT);
+
+        materialID = materialManager.LoadMaterialPBRgltf(pbr_gltf_info);
         // else
         //     materialID = MaterialManager::LoadMaterialPBRobj(
         //         std::string(material->GetName().C_Str()),
@@ -166,16 +179,16 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     }
 
     // std::cout << "mesh verts: " << mesh->mNumVertices << ", faces: " << mesh->mNumFaces << std::endl;
-    return Mesh(device, vertices, indices);
+    return Mesh(device, vertices, indices, materialID);
 }
 
-// void Model::setCustomMaterial(MaterialID materialID)
+// void ModelManager::setCustomMaterial(MaterialID materialID)
 // {
 //     for (auto& mesh : meshes)
 //         mesh.materialID = materialID;
 // }
 
-// void Model::setMeshMetalicRoughness(int meshIndex, float metalic, float roughness)
+// void ModelManager::setMeshMetalicRoughness(int meshIndex, float metalic, float roughness)
 // {
 //     if (meshIndex == -1)
 //     {

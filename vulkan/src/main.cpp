@@ -1,6 +1,6 @@
-﻿#include "main.h"
-#include "Globals.h"
-#include "App.h"
+﻿#include "App.h"
+
+#include <iostream>
 
 int main()
 {

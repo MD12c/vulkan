@@ -7,9 +7,10 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 
 #include "../vkBackend/Device.h"
+#include "../Material/IMaterial.h"
 
 struct Vertex
 {
@@ -34,10 +35,11 @@ private:
 public:
     std::vector<Vertex>   vertices;
     std::vector<uint32_t> indices;
+    MaterialID            materialID;
 
     // BoundingSphere sphere;
 
-    Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+    Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MaterialID materialID);
     ~Mesh();
     Mesh(const Mesh&)            = delete;
     Mesh& operator=(const Mesh&) = delete;

@@ -7,18 +7,18 @@
 class App
 {
 private:
-    int         width  = 1920;
-    int         height = 1080;
+    int         width  = 2560;
+    int         height = 1440;
     const char* name   = "VK Tutorial";
 
     double timePrev = 0;
     double timeCrnt = 0;
     double timeDiff;
 
-    Window         window;
-    Device         device;
-    Renderer       renderer;
-    Scene          scene;
+    Window   window;
+    Device   device;
+    Renderer renderer;
+    Scene    scene;
 
     void Update();
     void Render();

@@ -2,8 +2,8 @@
 
 #include <cstddef>
 
-Mesh::Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-    : device(device), vertices(vertices), indices(indices)  // sphere(computeBoundingSphere(vertices))
+Mesh::Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, MaterialID materialID)
+    : device(device), vertices(vertices), indices(indices), materialID(materialID)  // sphere(computeBoundingSphere(vertices))
 {
     VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * static_cast<uint32_t>(vertices.size());
     VkDeviceSize indexBufferSize  = sizeof(indices[0]) * static_cast<uint32_t>(indices.size());

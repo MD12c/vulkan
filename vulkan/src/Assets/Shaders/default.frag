@@ -7,7 +7,11 @@ layout(location = 3) in vec3 aTangent;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(set = 1, binding = 0) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D albedo0;
+layout(set = 1, binding = 1) uniform sampler2D normal0;
+layout(set = 1, binding = 2) uniform sampler2D metallic0;
+layout(set = 1, binding = 3) uniform sampler2D roughness0;
+layout(set = 1, binding = 4) uniform sampler2D ao0;
 
 // mat3 getTBN()
 // {
@@ -69,5 +73,5 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 void main()
 {
-    FragColor = vec4(texture(texSampler, aTex));
+    FragColor = vec4(texture(albedo0, aTex));
 }

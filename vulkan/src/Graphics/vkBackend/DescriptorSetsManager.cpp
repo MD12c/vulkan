@@ -25,40 +25,45 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
     }
 
     // Camera buffer
-    bufferBinding[0].binding         = 0;
-    bufferBinding[0].descriptorCount = 1;
-    bufferBinding[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
-    bufferBinding[0].stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
-
     {
+        std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};
+        bufferBinding[0].binding         = 0;
+        bufferBinding[0].descriptorCount = 1;
+        bufferBinding[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
+        bufferBinding[0].stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
+
         VkDescriptorSetLayoutCreateInfo setinfo{};
         setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         setinfo.pNext        = nullptr;
         setinfo.flags        = 0;
-        setinfo.bindingCount = static_cast<uint32_t>(bufferBinding.size());
+        setinfo.bindingCount = static_cast<uint32_t>(NUM_BUFFER_BINDINGS);
         setinfo.pBindings    = bufferBinding.data();
 
         if (vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &globalSetLayout))
             throw std::runtime_error("[ERROR] Failed to create DescriptorSetLayout");
     }
-    
+
     allocDescriptor(Camera::payloadSize, 0);
 
     // Samplers
-    VkDescriptorSetLayoutBinding samplerBinding{};
-    samplerBinding.binding         = 0;
-    samplerBinding.descriptorCount = 1;
-    samplerBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerBinding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+    {
+        std::array<VkDescriptorSetLayoutBinding, NUM_SAMPLER_BINDINGS> samplerBindings{};
+        for (uint32_t i = 0; i < 5; i++)
+        {
+            samplerBindings[i].binding         = i;
+            samplerBindings[i].descriptorCount = 1;
+            samplerBindings[i].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            samplerBindings[i].stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
 
-    VkDescriptorSetLayoutCreateInfo setinfo{};
-    setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    setinfo.bindingCount = 1;
-    setinfo.pBindings    = &samplerBinding;
+        VkDescriptorSetLayoutCreateInfo setinfo{};
+        setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        setinfo.bindingCount = static_cast<uint32_t>(NUM_SAMPLER_BINDINGS);
+        setinfo.pBindings    = samplerBindings.data();
 
-    if (vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &textureSetLayout))
-        throw std::runtime_error("[ERROR] Failed to create texture DescriptorSetLayout");
-
+        if (vkCreateDescriptorSetLayout(device.device(), &setinfo, nullptr, &textureSetLayout))
+            throw std::runtime_error("[ERROR] Failed to create texture DescriptorSetLayout");
+    }
 }
 
 DescriptorSetsManager::~DescriptorSetsManager()

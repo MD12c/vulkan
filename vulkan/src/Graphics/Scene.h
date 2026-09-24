@@ -5,7 +5,7 @@
 // #include <array>
 
 // #include "glm/glm.hpp"
-#include "Texture/Texture.h"
+#include "Texture\Texture.h"
 #include "vkBackend\Device.h"
 #include "Window.h"
 
@@ -19,8 +19,8 @@ private:
     Device& device;
 
 public:
-    std::unique_ptr<Model>  model;
-    std::unique_ptr<Camera> camera;
+    std::vector<Model>       models;
+    std::unique_ptr<Camera>  camera;
     std::shared_ptr<Texture> tex;
 
     Scene(Device& device);

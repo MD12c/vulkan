@@ -13,7 +13,6 @@ App::App()
 {
     scene.loadCamera(device, window);
     scene.loadModels(renderer);
-    scene.tex = renderer.textureManager.loadTexture(device, "Assets/Models/crow/diffuse.png");
 }
 
 App::~App()

@@ -8,7 +8,9 @@
 #include "Window.h"
 #include "Scene.h"
 
-#include "Texture/TextureManager.h"
+#include "Texture\TextureManager.h"
+#include "Material/MaterialManager.h"
+#include "Model/ModelManager.h"
 
 class Renderer
 {
@@ -34,6 +36,8 @@ private:
 public:
     DescriptorSetsManager descriptorSetsManager;
     TextureManager        textureManager;
+    MaterialManager       materialManager;
+    ModelManager          modelManager;
 
     Renderer(Device& device, Window& window);
     ~Renderer();
