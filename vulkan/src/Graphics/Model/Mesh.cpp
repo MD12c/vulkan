@@ -58,6 +58,7 @@ Mesh::Mesh(Mesh&& other) noexcept
     vertexBufferMemory = other.vertexBufferMemory;
     indexBuffer        = other.indexBuffer;
     indexBufferMemory  = other.indexBufferMemory;
+    materialID         = other.materialID;
 
     other.vertexBuffer       = VK_NULL_HANDLE;
     other.vertexBufferMemory = VK_NULL_HANDLE;

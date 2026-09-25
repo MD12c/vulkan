@@ -69,7 +69,7 @@ Mesh ModelManager::processMesh(aiMesh* mesh, const aiScene* scene, ModelID model
 
             // texture coords
             if (mesh->mTextureCoords[0])
-                vertices[i].texUV = glm::vec2(mesh->mTextureCoords[0][i].x, 1.0f - mesh->mTextureCoords[0][i].y);
+                vertices[i].texUV = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
             else
                 vertices[i].texUV = glm::vec2(0.0f, 0.0f);
         }

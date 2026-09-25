@@ -3,7 +3,6 @@
 
 #include "vulkan/vulkan_core.h"
 #include "..\vkBackend\Device.h"
-#include "..\vkBackend\DescriptorSetsManager.h"
 
 class Texture
 {
@@ -16,7 +15,6 @@ private:
     VkSampler      sampler;
 
 public:
-
     enum TextureType
     {
         NONE,
@@ -30,12 +28,15 @@ public:
         CUSTOM
     } textureType;
 
-    Texture(Device& device, TextureType textureType, VkDescriptorSet descriptorSet, DescriptorSetsManager& descriptorSetsManager, unsigned char* bytes, int widthImg, int heightImg);
+    Texture(Device& device, TextureType textureType, unsigned char* bytes, int widthImg, int heightImg, int numColCh);
     ~Texture();
     Texture(const Texture&)             = delete;
     Texture& operator=(const Texture&)  = delete;
     Texture(Texture&& other)            = delete;
     Texture& operator=(Texture&& other) = delete;
+
+    VkSampler   getSampler() { return sampler; }
+    VkImageView getImageView() { return imageView; }
 };
 
 #endif

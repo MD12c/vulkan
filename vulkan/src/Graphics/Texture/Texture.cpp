@@ -1,6 +1,7 @@
 #include "Texture.h"
+#include <iostream>
 
-Texture::Texture(Device& device, TextureType textureType, VkDescriptorSet descriptorSet, DescriptorSetsManager& descriptorSetsManager, unsigned char* bytes, int widthImg, int heightImg)
+Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, int widthImg, int heightImg, int numColCh)
     : device(device), textureType(textureType)
 {
     void*          pixel_ptr = bytes;
@@ -97,23 +98,7 @@ Texture::Texture(Device& device, TextureType textureType, VkDescriptorSet descri
         vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler);
     }
 
-    {
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView   = imageView;
-        imageInfo.sampler     = sampler;
-
-        VkWriteDescriptorSet write{};
-        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet          = descriptorSet;
-        write.dstBinding      = 0;
-        write.descriptorCount = 1;
-        write.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.pImageInfo      = &imageInfo;
-
-        vkUpdateDescriptorSets(device.device(), 1, &write, 0, nullptr);
-    }
+    std::cout << "Texture loaded" << std::endl;
 }
 
 Texture::~Texture()

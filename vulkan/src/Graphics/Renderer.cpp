@@ -17,7 +17,7 @@ Renderer::Renderer(Device& device, Window& window)
       window(window),
       descriptorSetsManager(device),
       textureManager(device, descriptorSetsManager),
-      materialManager(device, textureManager),
+      materialManager(device, textureManager, descriptorSetsManager),
       modelManager(device, materialManager)
 {
     createPipelineLayout();
@@ -104,11 +104,10 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
 
     pipeline->Bind(commandBuffers[imageIndex]);
     vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
-    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &textureManager.descriptorSet, 0, nullptr);
     scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].bufferMemory);
 
     for (const auto& model : scene.models)
-        model.Draw(commandBuffers[imageIndex], pipelineLayout, Transform({ {}, glm::quat(0.0f, 1.0f, 0.0f, 0.0f), glm::vec3(0.2f) }));
+        model.Draw(commandBuffers[imageIndex], pipelineLayout, materialManager, Transform({ {}, glm::quat(0.0f, 1.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
     if (vkEndCommandBuffer(commandBuffers[imageIndex]))

@@ -8,9 +8,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
-#include "..\vkBackend\Device.h"
 #include "Mesh.h"
 #include "Transform.h"
+#include "../Material/MaterialManager.h"
 
 using ModelID = uint32_t;
 
@@ -35,7 +35,7 @@ public:
     Model(Model&& other) noexcept;
     Model& operator=(Model&& other) = delete;
 
-    void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, Transform transform) const;
+    void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, MaterialManager& materialManager, Transform transform) const;
 
     // void setMeshMetalicRoughness(int meshIndex, float metalic, float roughness);
     // void setCustomMaterial(MaterialID materialID);

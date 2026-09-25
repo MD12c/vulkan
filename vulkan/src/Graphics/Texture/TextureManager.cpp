@@ -1,7 +1,5 @@
 #include "TextureManager.h"
 
-#include <stdexcept>
-
 #include "Graphics/Texture/Texture.h"
 #include "stb/stb_image.h"
 #include "../vkBackend/Device.h"
@@ -9,15 +7,16 @@
 TextureManager::TextureManager(Device& device, DescriptorSetsManager& descriptorSetsManager)
     : device(device), descriptorSetsManager(descriptorSetsManager)
 {
-    VkDescriptorSetLayout textureLayout = descriptorSetsManager.getTextureSetLayout();
+    unsigned char white[4] = { 255, 255, 255, 255 };
+    defaultWhite           = std::make_shared<Texture>(device, Texture::ALBEDO, white, 1, 1, 4);
 
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = descriptorSetsManager.getDescriptorPool();
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts        = &textureLayout;
+    unsigned char blue[4] = { 128, 128, 255, 255 };
+    defaultBlue           = std::make_shared<Texture>(device, Texture::NORMAL, blue, 1, 1, 4);
 
-    vkAllocateDescriptorSets(device.device(), &allocInfo, &descriptorSet);
+    unsigned char black[4] = { 0, 0, 0, 255 };
+    defaultBlack           = std::make_shared<Texture>(device, Texture::DISPLACEMENT, black, 1, 1, 4);
+
+    missingAlbedo = loadTexture(device, Texture::ALBEDO, "Assets/Textures/defaultFallback/missingAlbedo.png");
 }
 
 std::shared_ptr<Texture> TextureManager::loadTexture(Device& device, Texture::TextureType textureType, std::string filePath)
@@ -25,7 +24,7 @@ std::shared_ptr<Texture> TextureManager::loadTexture(Device& device, Texture::Te
     if (textureType == Texture::NONE)
         return nullptr;
 
-    int widthImg, heightImg, numColCh;  // TODO auto determine color channels
+    int widthImg, heightImg, numColCh;
     stbi_set_flip_vertically_on_load(false);
     unsigned char* bytes = stbi_load(filePath.c_str(), &widthImg, &heightImg, &numColCh, STBI_rgb_alpha);
 
@@ -35,7 +34,7 @@ std::shared_ptr<Texture> TextureManager::loadTexture(Device& device, Texture::Te
     auto it_type = loadedTextures.find(textureType);
     if (it_type == loadedTextures.end())
     {
-        std::shared_ptr<Texture> newTexture = std::make_shared<Texture>(device, textureType, descriptorSet, descriptorSetsManager, bytes, widthImg, heightImg);
+        std::shared_ptr<Texture> newTexture = std::make_shared<Texture>(device, textureType, bytes, widthImg, heightImg, numColCh);
         loadedTextures[textureType]         = { { filePath, newTexture } };
         stbi_image_free(bytes);
         return newTexture;
@@ -44,7 +43,7 @@ std::shared_ptr<Texture> TextureManager::loadTexture(Device& device, Texture::Te
     auto it_path = it_type->second.find(filePath);
     if (it_path == it_type->second.end())
     {
-        std::shared_ptr<Texture> newTexture = std::make_shared<Texture>(device, textureType, descriptorSet, descriptorSetsManager, bytes, widthImg, heightImg);
+        std::shared_ptr<Texture> newTexture = std::make_shared<Texture>(device, textureType, bytes, widthImg, heightImg, numColCh);
         it_type->second[filePath]           = newTexture;
         stbi_image_free(bytes);
         return newTexture;

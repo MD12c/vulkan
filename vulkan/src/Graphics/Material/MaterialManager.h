@@ -8,6 +8,7 @@
 #include "IMaterial.h"
 #include "../Texture/TextureManager.h"
 #include "../vkBackend/Device.h"
+#include "../vkBackend/DescriptorSetsManager.h"
 
 class MaterialManager
 {
@@ -47,10 +48,11 @@ public:
 private:
     Device&                                 device;
     TextureManager&                         textureManager;
+    DescriptorSetsManager&                  descriptorSetsManager;
     std::vector<std::unique_ptr<IMaterial>> materials;
 
 public:
-    MaterialManager(Device& device, TextureManager& textureManager);
+    MaterialManager(Device& device, TextureManager& textureManager, DescriptorSetsManager& descriptorSetsManager);
     ~MaterialManager();
     MaterialManager(const MaterialManager&)             = delete;
     MaterialManager& operator=(const MaterialManager&)  = delete;
@@ -60,6 +62,8 @@ public:
     MaterialID LoadMaterialSpecular(Specular_LoadInfo& specularLoadInfo);
     MaterialID LoadMaterialPBRgltf(PBR_GLTF_LoadInfo& pbrLoadInfo);
     MaterialID LoadMaterialPBRobj(PBR_OBJ_LoadInfo& pbrLoadInfo);
+
+    IMaterial& getMat(MaterialID index) { return *materials.at(index); }
 };
 
 #endif

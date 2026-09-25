@@ -14,20 +14,22 @@ public:
     float     roughness;
     float     metalic;
 
+    static constexpr size_t  NUM_TEXTURES        = 5;
     std::shared_ptr<Texture> albedoMap           = nullptr;
     std::shared_ptr<Texture> aoMap               = nullptr;
     std::shared_ptr<Texture> metalicRoughnessMap = nullptr;
     std::shared_ptr<Texture> normalMap           = nullptr;
     std::shared_ptr<Texture> displacementMap     = nullptr;
 
-    PBRMaterial(int                      ID,
-                float                    roughness,
-                float                    metalic,
-                std::shared_ptr<Texture> albedoMap,
-                std::shared_ptr<Texture> aoMap,
-                std::shared_ptr<Texture> metalicRoughnessMap,
-                std::shared_ptr<Texture> normalMap,
-                std::shared_ptr<Texture> displacementMap)
+    PBRMaterial(
+        int                      ID,
+        float                    roughness,
+        float                    metalic,
+        std::shared_ptr<Texture> albedoMap,
+        std::shared_ptr<Texture> aoMap,
+        std::shared_ptr<Texture> metalicRoughnessMap,
+        std::shared_ptr<Texture> normalMap,
+        std::shared_ptr<Texture> displacementMap)
 
         : IMaterial(ID),
           roughness(roughness),

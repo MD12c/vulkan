@@ -16,8 +16,8 @@ Scene::~Scene()
 
 void Scene::loadModels(Renderer& renderer)
 {
-    renderer.modelManager.loadModel(models, "Assets/Models/crow/scene.gltf");
-    // model = std::make_unique<Model>(device, "Assets/Models/ignore/sponza_palace/scene.gltf");
+    // renderer.modelManager.loadModel(models, "Assets/Models/crow/scene.gltf");
+    renderer.modelManager.loadModel(models, "Assets/Models/ignore/sponza_palace/scene.gltf");
 }
 void Scene::loadCamera(Device& device, Window& window)
 {

@@ -2,6 +2,7 @@
 #define MATERIAL_INTERFACE_H
 
 #include <cstdint>
+#include "vulkan/vulkan_core.h"
 
 using MaterialID                               = uint32_t;
 inline constexpr MaterialID NO_MATERIAL        = UINT32_MAX;
@@ -11,7 +12,8 @@ inline constexpr MaterialID WIREFRAME_MATERIAL = UINT32_MAX - 2;
 class IMaterial
 {
 public:
-    MaterialID ID;
+    MaterialID      ID;
+    VkDescriptorSet descriptorSet;
 
     IMaterial(int ID) : ID(ID) {}
     virtual ~IMaterial() = default;
