@@ -5,6 +5,7 @@
 #include "../Window.h"
 
 #include <GLFW/glfw3.h>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -27,12 +28,13 @@ protected:
     Window& window;
 
 private:
-    struct Payload
+    struct alignas(64) Payload
     {
         glm::mat4 m_proj;
         glm::mat4 m_view;
-        Payload(glm::mat4 proj, glm::mat4 view)
-            : m_proj(proj), m_view(view) {};
+        glm::vec3 m_camPos;
+        Payload(glm::mat4 proj, glm::mat4 view, glm::vec3 camPos)
+            : m_proj(proj), m_view(view), m_camPos(camPos) {};
     };
 
 public:

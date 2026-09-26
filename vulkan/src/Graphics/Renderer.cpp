@@ -107,7 +107,7 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
     scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].bufferMemory);
 
     for (const auto& model : scene.models)
-        model.Draw(commandBuffers[imageIndex], pipelineLayout, materialManager, Transform({ {}, glm::quat(0.0f, 1.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
+        model.Draw(commandBuffers[imageIndex], pipelineLayout, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
     if (vkEndCommandBuffer(commandBuffers[imageIndex]))

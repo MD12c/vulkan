@@ -15,6 +15,7 @@ CameraFly::CameraFly(Device& device, Window& window, float FOVdeg, float nearPla
 void CameraFly::updateScreenSize()
 {
     proj = glm::perspective(glm::radians(FOVdeg), (float)window.getExtent().width / (float)window.getExtent().height, nearPlane, farPlane);
+    proj[1][1] *= -1;
 }
 
 void CameraFly::Inputs()
@@ -30,9 +31,9 @@ void CameraFly::Inputs()
     if (glfwGetKey(winCache, GLFW_KEY_D) == GLFW_PRESS)
         Position += speed * glm::normalize(glm::cross(Orientation, Up));
     if (glfwGetKey(winCache, GLFW_KEY_SPACE) == GLFW_PRESS)
-        Position += speed * -Up;
-    if (glfwGetKey(winCache, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         Position += speed * Up;
+    if (glfwGetKey(winCache, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        Position += speed * -Up;
     if (glfwGetKey(winCache, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         speed = 0.4f;
     else
@@ -60,7 +61,7 @@ void CameraFly::Inputs()
         float rotX = sensitivity * (float)(mouseX - (window.getExtent().width / 2)) / window.getExtent().width;
 
         // Gets new rotated orientation rotate -> mat4, degree, axis
-        glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(rotY), glm::normalize(glm::cross(Orientation, Up)));
+        glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotY), glm::normalize(glm::cross(Orientation, Up)));
 
         // Checks if newOrientation is not too high angle -> vec3, vec3 -> angle between in rad
         if (!((glm::angle(newOrientation, Up) <= glm::radians(5.0f)) || (glm::angle(newOrientation, -Up) <= glm::radians(5.0f))))
