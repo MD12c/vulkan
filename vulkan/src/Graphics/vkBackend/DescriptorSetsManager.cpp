@@ -7,6 +7,7 @@
 DescriptorSetsManager::DescriptorSetsManager(Device& device)
     : device(device)
 {
+    // Pool
     {
         std::vector<VkDescriptorPoolSize> sizes = {
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },  // create a descriptor pool that will hold 10 uniform buffers
@@ -29,8 +30,8 @@ DescriptorSetsManager::DescriptorSetsManager(Device& device)
         std::array<VkDescriptorSetLayoutBinding, NUM_BUFFER_BINDINGS> bufferBinding{};
         bufferBinding[0].binding         = 0;
         bufferBinding[0].descriptorCount = 1;
-        bufferBinding[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
-        bufferBinding[0].stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
+        bufferBinding[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bufferBinding[0].stageFlags      = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo setinfo{};
         setinfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

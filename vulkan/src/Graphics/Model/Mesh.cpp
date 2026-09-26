@@ -99,7 +99,7 @@ std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions(
         { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position) },
         { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) },
         { 2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texUV) },
-        { 3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent) }
+        { 3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent) },
     };
     // Location, Binding, format, offset
 }

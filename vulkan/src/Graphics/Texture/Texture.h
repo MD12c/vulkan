@@ -14,6 +14,8 @@ private:
     VkDeviceMemory imageBufferMemory;
     VkSampler      sampler;
 
+    void generateMipmaps(VkImage image, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
 public:
     enum TextureType
     {

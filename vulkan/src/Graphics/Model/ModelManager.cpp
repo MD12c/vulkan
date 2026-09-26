@@ -144,8 +144,8 @@ Mesh ModelManager::processMesh(aiMesh* mesh, const aiScene* scene, ModelID model
             if (path == "")
                 continue;
 
-            const char* name = aiTextureTypeToString(type);
-            std::cout << name << ": " << path << std::endl;
+            // const char* name = aiTextureTypeToString(type);
+            // std::cout << name << ": " << path << std::endl;
         }
 
         // materialID = MaterialManager::LoadMaterialSpecular(

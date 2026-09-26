@@ -4,11 +4,13 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTex;
 layout(location = 3) in vec3 aTangent;
+layout(location = 4) in float aTangentSign;
 
 layout(location = 0) out vec3 oCrntPos;
 layout(location = 1) out vec3 oNormal;
 layout(location = 2) out vec2 oTex;
 layout(location = 3) out vec3 oTangent;
+layout(location = 4) out float oTangentSign;
 
 layout(push_constant) uniform Push
 {
@@ -21,6 +23,7 @@ layout(set = 0, binding = 0) uniform CameraBuffer
 {
     mat4 proj;
     mat4 view;
+    vec3 camPos;
 }
 cameraData;
 
@@ -30,6 +33,7 @@ void main()
     oTangent     = normalize(vec3(push.model * vec4(aTangent, 0.0f)));
     oTex         = aTex;
     oNormal      = mat3(push.normal) * aNormal;
-    oCrntPos     = vec3(crntPos);
+    oTangentSign = aTangentSign;
+    oCrntPos     = crntPos.rgb;
     gl_Position  = cameraData.proj * crntPos;
 }

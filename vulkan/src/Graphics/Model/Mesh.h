@@ -12,7 +12,7 @@
 #include "../vkBackend/Device.h"
 #include "../Material/IMaterial.h"
 
-struct Vertex
+struct alignas(16) Vertex
 {
     glm::vec3 position{};
     glm::vec3 normal{};
