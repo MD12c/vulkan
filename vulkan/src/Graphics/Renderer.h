@@ -5,6 +5,7 @@
 #include "vkBackend/Pipeline.h"
 #include "vkBackend/Swapchain.h"
 #include "vkBackend/DescriptorSetsManager.h"
+#include "vkBackend/RenderPassManager.h"
 #include "Window.h"
 #include "Scene.h"
 
@@ -21,16 +22,41 @@ private:
 
     Device&                      device;
     Window&                      window;
+    RenderPassManager            renderPassManager;
     std::unique_ptr<SwapChain>   swapchain;
-    std::unique_ptr<Pipeline>    pipeline;
-    VkPipelineLayout             pipelineLayout;
+    std::unique_ptr<Pipeline>    mainPipeline;
+    std::unique_ptr<Pipeline>    shadowPipeline;
+    VkPipelineLayout             pipelineLayoutDefault;
+    VkPipelineLayout             pipelineLayoutDepth2D;
     std::vector<VkCommandBuffer> commandBuffers;
 
+    // Main Pass
+    std::vector<VkFramebuffer> mainPassFramebuffers;
+    VkImage                    mainDepthImage;
+    VkImageView                mainDepthImageView;
+    VkDeviceMemory             mainDepthImageMemory;
+
+    // Depth Pass
+    struct ShadowMap
+    {
+        VkFramebuffer  framebuffer;
+        VkImage        image;
+        VkImageView    imageView;
+        VkDeviceMemory memory;
+    };
+    std::vector<ShadowMap> shadowMaps;
+
     void recreateSwapchain();
-    void createPipelineLayout();
+
+    void createPipelines();
+    void createPipelineLayouts();
+
+    void createMainDepthResources();
+    void createMainFramebuffers();
+    void createShadowFramebuffers();
+    
     void createCommandBuffers();
     void recordCommandBuffer(int imageIndex, const Scene& scene);
-    void createPipeline();
     void freeCommandBuffers();
 
 public:

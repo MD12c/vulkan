@@ -7,21 +7,23 @@
 
 struct PipelineConfigInfo
 {
-    VkPipelineViewportStateCreateInfo      viewportInfo;
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-    VkPipelineRasterizationStateCreateInfo rasterizationInfo;
-    VkPipelineMultisampleStateCreateInfo   multisampleInfo;
-    VkPipelineDepthStencilStateCreateInfo  depthStencilInfo;
-    VkPipelineColorBlendStateCreateInfo    colorBlendInfo;
-    VkPipelineColorBlendAttachmentState    colorBlendAttachment;
-    std::vector<VkDynamicState>            dynamicStateEnables;
-    VkPipelineDynamicStateCreateInfo       dynamicStateInfo;
-    VkPipelineLayout                       pipelineLayout    = VK_NULL_HANDLE;
-    VkRenderPass                           renderPass        = VK_NULL_HANDLE;
-    uint32_t                               subpass           = 0;
-    PipelineConfigInfo()                                     = default;
-    PipelineConfigInfo(const PipelineConfigInfo&)            = delete;
-    PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
+    VkPipelineViewportStateCreateInfo              viewportInfo;
+    VkPipelineInputAssemblyStateCreateInfo         inputAssemblyInfo;
+    VkPipelineRasterizationStateCreateInfo         rasterizationInfo;
+    VkPipelineMultisampleStateCreateInfo           multisampleInfo;
+    VkPipelineDepthStencilStateCreateInfo          depthStencilInfo;
+    VkPipelineColorBlendStateCreateInfo            colorBlendInfo;
+    VkPipelineColorBlendAttachmentState            colorBlendAttachment;
+    std::vector<VkDynamicState>                    dynamicStateEnables;
+    VkPipelineDynamicStateCreateInfo               dynamicStateInfo;
+    std::vector<VkVertexInputBindingDescription>   bindingDescriptions;
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+    VkPipelineLayout                               pipelineLayout = VK_NULL_HANDLE;
+    VkRenderPass                                   renderPass     = VK_NULL_HANDLE;
+    uint32_t                                       subpass        = 0;
+    PipelineConfigInfo()                                          = default;
+    PipelineConfigInfo(const PipelineConfigInfo&)                 = delete;
+    PipelineConfigInfo& operator=(const PipelineConfigInfo&)      = delete;
 };
 
 class Pipeline

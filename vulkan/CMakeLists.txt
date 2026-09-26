@@ -24,6 +24,8 @@ set(VULKAN_BACKEND_SOURCES
     src/Graphics/vkBackend/Swapchain.cpp
     src/Graphics/vkBackend/DescriptorSetsManager.h
     src/Graphics/vkBackend/DescriptorSetsManager.cpp
+    src/Graphics/vkBackend/RenderPassManager.h
+    src/Graphics/vkBackend/RenderPassManager.cpp
 )
 
 set(MODEL_SOURCES

@@ -5,12 +5,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#include "..\Model\Mesh.h"
-
-Pipeline::Pipeline(Device&                   device,
-                   const PipelineConfigInfo& pipelineConfigInfo,
-                   const std::string&        vertFilepath,
-                   const std::string&        fragFilepath)
+Pipeline::Pipeline(Device& device, const PipelineConfigInfo& pipelineConfigInfo, const std::string& vertFilepath, const std::string& fragFilepath)
     : device(device)
 {
     createGraphicsPipeline(vertFilepath, fragFilepath, pipelineConfigInfo);
@@ -76,12 +71,10 @@ void Pipeline::createGraphicsPipeline(const std::string& vertFilepath, const std
     // VAO bindings
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    auto bindingDescriptions                        = Vertex::getBindingDescriptions();
-    auto attributeDescriptions                      = Vertex::getAttributeDescriptions();
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
-    vertexInputInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(pipelineConfigInfo.attributeDescriptions.size());
+    vertexInputInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(pipelineConfigInfo.bindingDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions      = pipelineConfigInfo.bindingDescriptions.data();
+    vertexInputInfo.pVertexAttributeDescriptions    = pipelineConfigInfo.attributeDescriptions.data();
 
     // Shader Program Linking info
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -110,6 +103,9 @@ void Pipeline::createGraphicsPipeline(const std::string& vertFilepath, const std
     std::cout << "Fragment Shader Code Size: " << fragCode.size() << '\n';
 }
 
+/// @brief get compiled shader code
+/// @param code compiled source code bytes
+/// @param shaderModule empty shader module
 void Pipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
 {
     VkShaderModuleCreateInfo createInfo{};

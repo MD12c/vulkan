@@ -140,7 +140,7 @@ void main()
 
     const vec3 Norm = normalize(TBN * mapped);
     // FragColor      = vec4(aTangent * 0.5 + 0.5, 1.0);
-    FragColor = vec4(Norm, 1.0f);
+    // FragColor = vec4(Norm, 1.0f);
 
-    // FragColor = vec4(texture(albedo0, UVs));
+    FragColor = vec4(texture(albedo0, aTex));
 }

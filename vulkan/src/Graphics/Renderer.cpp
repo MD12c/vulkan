@@ -1,12 +1,15 @@
 #include "Renderer.h"
 
+#include <cstdint>
 #include <stdexcept>
 #include <cassert>
 #include <array>
 
 #include "Material/MaterialManager.h"
+#include "Model/Mesh.h"
 #include "Model/ModelManager.h"
 #include "vkBackend/DescriptorSetsManager.h"
+#include "vkBackend/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 
 #include "Model\Model.h"
@@ -15,20 +18,43 @@
 Renderer::Renderer(Device& device, Window& window)
     : device(device),
       window(window),
+      renderPassManager(device),
       descriptorSetsManager(device),
       textureManager(device, descriptorSetsManager),
       materialManager(device, textureManager, descriptorSetsManager),
       modelManager(device, materialManager)
 {
-    createPipelineLayout();
+    createPipelineLayouts();
     recreateSwapchain();
+    createMainDepthResources();
+    createMainFramebuffers();
+    createShadowFramebuffers();
     createCommandBuffers();
 }
 
 Renderer::~Renderer()
 {
     vkDeviceWaitIdle(device.device());
-    vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+    vkDestroyPipelineLayout(device.device(), pipelineLayoutDefault, nullptr);
+    vkDestroyPipelineLayout(device.device(), pipelineLayoutDepth2D, nullptr);
+
+    vkDestroyImageView(device.device(), mainDepthImageView, nullptr);
+    vkDestroyImage(device.device(), mainDepthImage, nullptr);
+    vkFreeMemory(device.device(), mainDepthImageMemory, nullptr);
+
+    for (int i = 0; i < shadowMaps.size(); i++)
+    {
+        vkDestroyImageView(device.device(), shadowMaps[i].imageView, nullptr);
+        vkDestroyImage(device.device(), shadowMaps[i].image, nullptr);
+        vkFreeMemory(device.device(), shadowMaps[i].memory, nullptr);
+    }
+
+    // Frame Buffers
+    for (auto framebuffer : mainPassFramebuffers)
+        vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
+
+    for (auto shadowMap : shadowMaps)
+        vkDestroyFramebuffer(device.device(), shadowMap.framebuffer, nullptr);
 }
 
 void Renderer::drawFrame(const Scene& scene)
@@ -58,10 +84,7 @@ void Renderer::drawFrame(const Scene& scene)
 
 void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
 {
-    uint32_t currentFrame = 0;
-
-    static int frame = 0;
-    frame            = (frame + 1) % 10000;
+    static uint32_t currentFrame = 0;
 
     {
         VkCommandBufferBeginInfo beginInfo{};
@@ -79,8 +102,8 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass        = swapchain->getRenderPass();
-        renderPassInfo.framebuffer       = swapchain->getFrameBuffer(static_cast<uint32_t>(imageIndex));
+        renderPassInfo.renderPass        = renderPassManager.getMainRenderPass();
+        renderPassInfo.framebuffer       = mainPassFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapchain->getSwapChainExtent();
         renderPassInfo.clearValueCount   = static_cast<uint32_t>(clearValues.size());
@@ -102,55 +125,94 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
     }
 
-    pipeline->Bind(commandBuffers[imageIndex]);
-    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
+    mainPipeline->Bind(commandBuffers[imageIndex]);
+    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
     scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].bufferMemory);
 
     for (const auto& model : scene.models)
-        model.Draw(commandBuffers[imageIndex], pipelineLayout, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
+        model.Draw(commandBuffers[imageIndex], pipelineLayoutDefault, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
+
     if (vkEndCommandBuffer(commandBuffers[imageIndex]))
         throw std::runtime_error("[ERROR] failed to record command buffers");
 
     currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::createPipelineLayout()
+void Renderer::createPipelineLayouts()
 {
-    VkPushConstantRange pushConstantRangeInfo{};
-    pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRangeInfo.offset     = 0;
-    pushConstantRangeInfo.size       = sizeof(Model::PushConst);
+    {
+        VkPushConstantRange pushConstantRangeInfo{};
+        pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRangeInfo.offset     = 0;
+        pushConstantRangeInfo.size       = sizeof(Model::PushConst);
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount         = 2;  // descriptors
-    pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
-    pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount         = 2;  // descriptors
+        pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
+        pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
 
-    VkDescriptorSetLayout setLayouts[2] = { descriptorSetsManager.getGlobalSetLayouts(), descriptorSetsManager.getTextureSetLayout() };
-    pipelineLayoutInfo.pSetLayouts      = setLayouts;
+        VkDescriptorSetLayout setLayouts[2] = { descriptorSetsManager.getGlobalSetLayouts(), descriptorSetsManager.getTextureSetLayout() };
+        pipelineLayoutInfo.pSetLayouts      = setLayouts;
 
-    if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-        throw std::runtime_error("[ERROR] failed to create pipeline layout");
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDefault) != VK_SUCCESS)
+            throw std::runtime_error("[ERROR] failed to create pipeline layout Default");
+    }
+
+    {
+        VkPushConstantRange pushConstantRangeInfo{};
+        pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRangeInfo.offset     = 0;
+        pushConstantRangeInfo.size       = sizeof(Model::PushConst);
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount         = 2;  // descriptors
+        pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
+        pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
+
+        VkDescriptorSetLayout setLayouts[2] = { descriptorSetsManager.getGlobalSetLayouts(), descriptorSetsManager.getTextureSetLayout() };
+        pipelineLayoutInfo.pSetLayouts      = setLayouts;
+
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDepth2D) != VK_SUCCESS)
+            throw std::runtime_error("[ERROR] failed to create pipeline layout Depth2D");
+    }
 }
 
-void Renderer::createPipeline()
+void Renderer::createPipelines()
 {
     assert(swapchain != nullptr && "Cannot create pipeline before swap chain");
-    assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+    {
+        assert(pipelineLayoutDefault != nullptr && "Cannot create pipeline before pipeline layout");
+        renderPassManager.createMainRenderPassLayout(*swapchain);
 
-    PipelineConfigInfo pipelineConfig{};
-    Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-    pipelineConfig.renderPass     = swapchain->getRenderPass();
-    pipelineConfig.pipelineLayout = pipelineLayout;
-    pipeline                      = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/default.vert.spv", "Assets/Shaders/default.frag.spv");
+        PipelineConfigInfo pipelineConfig{};
+        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+        pipelineConfig.renderPass            = renderPassManager.getMainRenderPass();
+        pipelineConfig.pipelineLayout        = pipelineLayoutDefault;
+        pipelineConfig.bindingDescriptions   = Vertex::getBindingDescriptions();
+        pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
+        mainPipeline                         = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/default.vert.spv", "Assets/Shaders/default.frag.spv");
+    }
+
+    // {
+    //     assert(pipelineLayoutDepth2D != nullptr && "Cannot create pipeline before pipeline layout");
+
+    //     PipelineConfigInfo pipelineConfig{};
+    //     Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+    //     pipelineConfig.renderPass            = renderPassManager.getShadowRenderPass();
+    //     pipelineConfig.pipelineLayout        = pipelineLayoutDepth2D;
+    //     pipelineConfig.bindingDescriptions   = Vertex::getBindingDescriptions();
+    //     pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
+    //     shadowPipeline                       = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
+    // }
 }
 
 void Renderer::createCommandBuffers()
 {
-    commandBuffers.resize(swapchain->imageCount());
+    commandBuffers.resize(swapchain->getMainImageCount());
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -159,6 +221,95 @@ void Renderer::createCommandBuffers()
 
     if (vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
         throw std::runtime_error("[ERROR] failed to allocate command buffers");
+}
+
+/// @brief Creates `depthImageViews` vector with all the memory allocations
+///
+/// 1. Create multiple `VkImage`
+///
+/// 2. Create multiple `VkImageView` from (1.)
+void Renderer::createMainDepthResources()
+{
+    VkFormat depthFormat = swapchain->getDepthFormat();
+
+    {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width  = swapchain->getSwapChainExtent().width;
+        imageInfo.extent.height = swapchain->getSwapChainExtent().height;
+        imageInfo.extent.depth  = 1;
+        imageInfo.mipLevels     = 1;
+        imageInfo.arrayLayers   = 1;
+        imageInfo.format        = depthFormat;
+        imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage         = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.flags         = 0;
+
+        device.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mainDepthImage, mainDepthImageMemory);
+    }
+
+    {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image                           = mainDepthImage;
+        viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format                          = depthFormat;
+        viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        viewInfo.subresourceRange.baseMipLevel   = 0;
+        viewInfo.subresourceRange.levelCount     = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount     = 1;
+
+        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &mainDepthImageView) != VK_SUCCESS)
+            throw std::runtime_error("failed to create texture image view!");
+    }
+}
+
+/// @brief create `VkFramebuffer` objects
+void Renderer::createMainFramebuffers()
+{
+    const size_t imageCount = swapchain->getMainImageCount();
+    mainPassFramebuffers.resize(imageCount);
+
+    for (size_t i = 0; i < imageCount; i++)
+    {
+        std::array<VkImageView, 2> attachments = { swapchain->getMainColorImageView(i), mainDepthImageView };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass      = renderPassManager.getMainRenderPass();
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments    = attachments.data();
+        framebufferInfo.width           = swapchain->getSwapChainExtent().width;
+        framebufferInfo.height          = swapchain->getSwapChainExtent().height;
+        framebufferInfo.layers          = 1;
+
+        if (vkCreateFramebuffer(device.device(), &framebufferInfo, nullptr, &mainPassFramebuffers[i]) != VK_SUCCESS)
+            throw std::runtime_error("failed to create framebuffer!");
+    }
+}
+
+/// @brief create `VkFramebuffer` objects
+void Renderer::createShadowFramebuffers()
+{
+    for (auto& shadowMap : shadowMaps)
+    {
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass      = renderPassManager.getShadowRenderPass();
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments    = &shadowMap.imageView;
+        framebufferInfo.width           = swapchain->getSwapChainExtent().width;
+        framebufferInfo.height          = swapchain->getSwapChainExtent().height;
+        framebufferInfo.layers          = 1;
+
+        if (vkCreateFramebuffer(device.device(), &framebufferInfo, nullptr, &shadowMap.framebuffer) != VK_SUCCESS)
+            throw std::runtime_error("failed to create framebuffer!");
+    }
 }
 
 void Renderer::recreateSwapchain()
@@ -176,14 +327,14 @@ void Renderer::recreateSwapchain()
     else
     {
         swapchain = std::make_unique<SwapChain>(device, extent, std::move(swapchain));
-        if (swapchain->imageCount() != commandBuffers.size())
+        if (swapchain->getMainImageCount() != commandBuffers.size())
         {
             freeCommandBuffers();
             createCommandBuffers();
         }
     }
 
-    createPipeline();
+    createPipelines();
 }
 
 void Renderer::freeCommandBuffers()
