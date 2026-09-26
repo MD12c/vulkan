@@ -1,7 +1,6 @@
 ﻿# cmake-format: off
 set(CORE_SOURCES
     src/main.cpp
-    src/main.h
     src/App.cpp
     src/App.h
     src/Globals.h
@@ -99,7 +98,7 @@ foreach(SHADER ${SHADERS})
   get_filename_component(NAME ${SHADER} NAME)
   add_custom_command(
     OUTPUT "${APP_OUTPUT_DIR}/Assets/Shaders/${NAME}.spv"
-    COMMAND ${GLSLC} ${SHADER} -o "${APP_OUTPUT_DIR}/Assets/Shaders/${NAME}.spv"
+    COMMAND ${GLSLC} ${SHADER} -o "${APP_OUTPUT_DIR}/Assets/Shaders/${NAME}.spv" -g
     DEPENDS ${SHADER} copy_assets
     COMMENT "Compiling Shaders")
   list(APPEND SPV_FILES "${APP_OUTPUT_DIR}/Assets/Shaders/${NAME}.spv")
