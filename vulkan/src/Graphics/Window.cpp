@@ -1,6 +1,7 @@
 #include "Window.h"
-#include "../Globals.h"
+
 #include <stdexcept>
+#include <string>
 
 Window::Window(int width, int height, const char* name)
     : width(width), height(height), name(name)

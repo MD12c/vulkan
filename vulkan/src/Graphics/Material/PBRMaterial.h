@@ -3,7 +3,10 @@
 
 #include <memory>
 
-#include "glm/glm.hpp"
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/ext/vector_float3.hpp>
+
 #include "IMaterial.h"
 #include "../Texture/Texture.h"
 

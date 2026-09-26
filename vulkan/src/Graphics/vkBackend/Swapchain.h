@@ -1,12 +1,10 @@
 #pragma once
 
 #include "device.h"
-#include "Globals.h"
 
 #include <vulkan/vulkan.h>
 
 #include <memory>
-#include <string>
 #include <vector>
 
 class SwapChain

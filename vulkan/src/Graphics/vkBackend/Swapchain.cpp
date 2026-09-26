@@ -7,7 +7,6 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
-#include <set>
 #include <stdexcept>
 
 SwapChain::SwapChain(Device& deviceRef, VkExtent2D extent)

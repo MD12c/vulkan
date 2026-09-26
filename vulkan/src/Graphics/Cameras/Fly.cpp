@@ -48,7 +48,7 @@ void CameraFly::Inputs()
         // Prevents rotate spike
         if (firstClick)
         {
-            glfwSetCursorPos(winCache, (window.getExtent().width / 2), (window.getExtent().height / 2));
+            glfwSetCursorPos(winCache, ((float)window.getExtent().width / 2), ((float)window.getExtent().height / 2));
             firstClick = false;
         }
 
@@ -57,8 +57,8 @@ void CameraFly::Inputs()
         glfwGetCursorPos(winCache, &mouseX, &mouseY);
 
         // Shifts the cursor coord to be in the middle of the screen and normalizes them
-        float rotY = sensitivity * (float)(mouseY - (window.getExtent().height / 2)) / window.getExtent().height;
-        float rotX = sensitivity * (float)(mouseX - (window.getExtent().width / 2)) / window.getExtent().width;
+        float rotY = sensitivity * (float)(mouseY - ((float)window.getExtent().height / 2)) / window.getExtent().height;
+        float rotX = sensitivity * (float)(mouseX - ((float)window.getExtent().width / 2)) / window.getExtent().width;
 
         // Gets new rotated orientation rotate -> mat4, degree, axis
         glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotY), glm::normalize(glm::cross(Orientation, Up)));
@@ -71,7 +71,7 @@ void CameraFly::Inputs()
         Orientation = glm::rotate(Orientation, glm::radians(-rotX), Up);
 
         // Locks the cursor to the middle of the screen
-        glfwSetCursorPos(winCache, (window.getExtent().width / 2), (window.getExtent().height / 2));
+        glfwSetCursorPos(winCache, ((float)window.getExtent().width / 2), ((float)window.getExtent().height / 2));
     }
     else if (glfwGetMouseButton(winCache, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
     {
