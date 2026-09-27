@@ -38,23 +38,20 @@ Renderer::~Renderer()
     vkDestroyPipelineLayout(device.device(), pipelineLayoutDefault, nullptr);
     vkDestroyPipelineLayout(device.device(), pipelineLayoutDepth2D, nullptr);
 
-    vkDestroyImageView(device.device(), mainDepthImageView, nullptr);
-    vkDestroyImage(device.device(), mainDepthImage, nullptr);
-    vkFreeMemory(device.device(), mainDepthImageMemory, nullptr);
+    vkDestroyImageView(device.device(), mainDepthImage.imageView, nullptr);
+    vmaDestroyImage(device.getVMA(), mainDepthImage.image, mainDepthImage.allocation);
 
-    for (int i = 0; i < shadowMaps.size(); i++)
+    for (auto& shadowMap : shadowMaps)
     {
-        vkDestroyImageView(device.device(), shadowMaps[i].imageView, nullptr);
-        vkDestroyImage(device.device(), shadowMaps[i].image, nullptr);
-        vkFreeMemory(device.device(), shadowMaps[i].memory, nullptr);
+        vkDestroyImageView(device.device(), shadowMap.image.imageView, nullptr);
+        vmaDestroyImage(device.getVMA(), shadowMap.image.image, shadowMap.image.allocation);
     }
-
-    // Frame Buffers
-    for (auto framebuffer : mainPassFramebuffers)
-        vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
 
     for (auto shadowMap : shadowMaps)
         vkDestroyFramebuffer(device.device(), shadowMap.framebuffer, nullptr);
+
+    for (auto framebuffer : mainPassFramebuffers)
+        vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
 }
 
 void Renderer::drawFrame(const Scene& scene)
@@ -125,17 +122,19 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
     }
 
-    mainPipeline->Bind(commandBuffers[imageIndex]);
-    vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
-    scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].bufferMemory);
+    {
+        mainPipeline->Bind(commandBuffers[imageIndex]);
+        vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
+        scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].allocation);
 
-    for (const auto& model : scene.models)
-        model.Draw(commandBuffers[imageIndex], pipelineLayoutDefault, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
+        for (const auto& model : scene.models)
+            model.Draw(commandBuffers[imageIndex], pipelineLayoutDefault, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
 
-    vkCmdEndRenderPass(commandBuffers[imageIndex]);
+        vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
-    if (vkEndCommandBuffer(commandBuffers[imageIndex]))
-        throw std::runtime_error("[ERROR] failed to record command buffers");
+        if (vkEndCommandBuffer(commandBuffers[imageIndex]))
+            throw std::runtime_error("[ERROR] failed to record command buffers");
+    }
 
     currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
 }
@@ -249,13 +248,18 @@ void Renderer::createMainDepthResources()
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.flags         = 0;
 
-        device.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mainDepthImage, mainDepthImageMemory);
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
+        allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        // allocInfo.flags         = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+        device.createImageWithInfo(imageInfo, allocInfo, mainDepthImage);
     }
 
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image                           = mainDepthImage;
+        viewInfo.image                           = mainDepthImage.image;
         viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format                          = depthFormat;
         viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -264,7 +268,7 @@ void Renderer::createMainDepthResources()
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
 
-        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &mainDepthImageView) != VK_SUCCESS)
+        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &mainDepthImage.imageView) != VK_SUCCESS)
             throw std::runtime_error("failed to create texture image view!");
     }
 }
@@ -277,7 +281,7 @@ void Renderer::createMainFramebuffers()
 
     for (size_t i = 0; i < imageCount; i++)
     {
-        std::array<VkImageView, 2> attachments = { swapchain->getMainColorImageView(i), mainDepthImageView };
+        std::array<VkImageView, 2> attachments = { swapchain->getMainColorImageView(i), mainDepthImage.imageView };
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -302,7 +306,7 @@ void Renderer::createShadowFramebuffers()
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass      = renderPassManager.getShadowRenderPass();
         framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments    = &shadowMap.imageView;
+        framebufferInfo.pAttachments    = &shadowMap.image.imageView;
         framebufferInfo.width           = swapchain->getSwapChainExtent().width;
         framebufferInfo.height          = swapchain->getSwapChainExtent().height;
         framebufferInfo.layers          = 1;

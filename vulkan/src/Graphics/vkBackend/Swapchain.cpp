@@ -38,8 +38,6 @@ SwapChain::~SwapChain()
     for (auto imageView : mainColorImageViews)
         vkDestroyImageView(device.device(), imageView, nullptr);
 
-    mainColorImageViews.clear();
-
     if (swapChain != nullptr)
     {
         vkDestroySwapchainKHR(device.device(), swapChain, nullptr);

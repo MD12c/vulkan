@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <set>
+#include <stdexcept>
 #include <unordered_set>
 
 #include "../Window.h"
@@ -22,12 +23,14 @@ Device::Device(Window& window) : window(window)
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
+    createVMA();
     createCommandPool();
 }
 
 Device::~Device()
 {
     vkDestroyCommandPool(device_, commandPool, nullptr);
+    vmaDestroyAllocator(vmallocator);
     vkDestroyDevice(device_, nullptr);
 
     if (enableValidationLayers)
@@ -35,6 +38,17 @@ Device::~Device()
 
     vkDestroySurfaceKHR(instance, surface_, nullptr);
     vkDestroyInstance(instance, nullptr);
+}
+
+void Device::createVMA()
+{
+    VmaAllocatorCreateInfo allocatorInfo{};
+    allocatorInfo.physicalDevice = physicalDevice;
+    allocatorInfo.device         = device_;
+    allocatorInfo.instance       = instance;
+
+    if (vmaCreateAllocator(&allocatorInfo, &vmallocator))
+        throw std::runtime_error("failed to create VMA");
 }
 
 /// @brief Create a VkInstance
@@ -55,7 +69,7 @@ void Device::createInstance()
     if (enableValidationLayers && !checkValidationLayerSupport())
         throw std::runtime_error("validation layers requested, but not available!");
 
-    VkApplicationInfo appInfo  = {};
+    VkApplicationInfo appInfo{};
     appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName   = "Vulkan App";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -63,9 +77,9 @@ void Device::createInstance()
     appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion         = VK_API_VERSION_1_0;
 
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType                = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo     = &appInfo;
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
 
     auto extensions                    = getRequiredExtensions();
     createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
@@ -86,7 +100,7 @@ void Device::createInstance()
         createInfo.pNext             = nullptr;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    if (vkCreateInstance(&createInfo, nullptr, &instance))
         throw std::runtime_error("failed to create instance!");
 
     hasGflwRequiredInstanceExtensions();
@@ -148,19 +162,19 @@ void Device::createLogicalDevice()
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies)
     {
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
-        queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex        = queueFamily;
-        queueCreateInfo.queueCount              = 1;
-        queueCreateInfo.pQueuePriorities        = &queuePriority;
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount       = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy        = VK_TRUE;
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType              = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos    = queueCreateInfos.data();
@@ -169,7 +183,7 @@ void Device::createLogicalDevice()
     createInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS)
+    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_))
         throw std::runtime_error("failed to create logical device!");
 
     vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);
@@ -181,13 +195,13 @@ void Device::createCommandPool()
 {
     QueueFamilyIndices queueFamilyIndices = findPhysicalQueueFamilies();
 
-    VkCommandPoolCreateInfo poolInfo = {};
-    poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex        = queueFamilyIndices.graphicsFamily;                // graphics family queue
-    poolInfo.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |            // command buffers from this pool will be short-lived, re-recorded frequently
-                                       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allows individual command buffers allocated from this pool to be reset/re-recorded independently
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;                // graphics family queue
+    poolInfo.flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT |            // command buffers from this pool will be short-lived, re-recorded frequently
+                                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allows individual command buffers allocated from this pool to be reset/re-recorded independently
 
-    if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool))
         throw std::runtime_error("failed to create command pool!");
 }
 
@@ -294,7 +308,7 @@ void Device::setupDebugMessenger()
     if (func == nullptr)
         throw std::runtime_error("failed to set up debug messenger! Extension is not present.");
 
-    if (func(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+    if (func(instance, &createInfo, nullptr, &debugMessenger))
         throw std::runtime_error("failed to set up debug messenger!");
 }
 
@@ -508,7 +522,8 @@ uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 /// @brief Allocates a buffer on the GPU and connects your `VkBuffer` to that memory
 /// @param size the size in bytes of the buffer to be created
-/// @param usage is a bitmask of `VkBufferUsageFlagBits` specifying allowed usages of the buffer e.g. `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`
+/// @param bufferUsage is a bitmask of `VkBufferUsageFlagBits` specifying allowed usages of the buffer e.g. `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`
+/// @param allocUsage how
 /// @param properties how to use the memory:
 ///
 /// - `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`, fast GPU-only memory
@@ -518,30 +533,16 @@ uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 /// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
 /// @param buffer empty `VkBuffer` handle
 /// @param bufferMemory empty `VkDeviceMemory` handle to the GPU memory
-void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags bufferUsage, VmaAllocationCreateInfo allocUsage, AllocatedBuffer& buffer)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size        = size;
-    bufferInfo.usage       = usage;
+    bufferInfo.usage       = bufferUsage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // only one queue family can access this buffer at a time
 
-    if (vkCreateBuffer(device_, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)  // creates a VkBuffer object on CPU, fast -> no GPU work/allocation
-        throw std::runtime_error("failed to create vertex buffer!");
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device_, buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize  = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device_, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)  // allocates memory on the GPU, slow. Not tied to the VkBuffer buffer handle yet
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
-
-    if (vkBindBufferMemory(device_, buffer, bufferMemory, 0) != VK_SUCCESS)  // connects the VkBuffer buffer handle and the memory allocated
-        throw std::runtime_error("failed to bind buffer to memory");
+    if (vmaCreateBuffer(vmallocator, &bufferInfo, &allocUsage, &buffer.buffer, &buffer.allocation, nullptr))
+        throw std::runtime_error("failed to create buffer!");
 }
 
 /// @brief Allocates the command buffer using commandPool and starts recording using `vkBeginCommandBuffer()`
@@ -646,14 +647,14 @@ void Device::transitionImageLayout(VkImage image, VkImageSubresourceRange range,
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
-    VkImageMemoryBarrier imageBarrier_toTransfer = {};
-    imageBarrier_toTransfer.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageBarrier_toTransfer.oldLayout            = oldLayout;
-    imageBarrier_toTransfer.newLayout            = newLayout;
-    imageBarrier_toTransfer.image                = image;
-    imageBarrier_toTransfer.subresourceRange     = range;
-    imageBarrier_toTransfer.srcAccessMask        = 0;
-    imageBarrier_toTransfer.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+    VkImageMemoryBarrier imageBarrier_toTransfer{};
+    imageBarrier_toTransfer.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageBarrier_toTransfer.oldLayout        = oldLayout;
+    imageBarrier_toTransfer.newLayout        = newLayout;
+    imageBarrier_toTransfer.image            = image;
+    imageBarrier_toTransfer.subresourceRange = range;
+    imageBarrier_toTransfer.srcAccessMask    = 0;
+    imageBarrier_toTransfer.dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT;
 
     // barrier the image into the transfer-receive layout
     vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toTransfer);
@@ -661,41 +662,12 @@ void Device::transitionImageLayout(VkImage image, VkImageSubresourceRange range,
     endSingleTimeCommands(commandBuffer);
 }
 
-/// @brief Safely allocates the image buffer with the specified types and binds it to the `VkImage` handle
-///
-/// 1. Creates a `VkImage` at image with the specified `imageInfo`
-///
-/// 2. Queries image requirements and checks them against `findMemoryType()` to find a usable memory type
-///
-/// 3. Allocates image buffer via `vkAllocateMemory()`
-///
-/// 4. Binds `VkImage image` to `VkDeviceMemory imageMemory`
-/// @param imageInfo image parameters
-/// @param properties how to use the memory:
-///
-/// - `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`, fast GPU-only memory
-///
-/// - `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`, CPU-mappable
-///
-/// - `VK_MEMORY_PROPERTY_HOST_COHERENT_BIT`, CPU writes are auto flushed to GPU, no manual flush needed
-/// @param image empty handle to the image
-/// @param imageMemory empty `VkDeviceMemory` handle to the GPU memory
-void Device::createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+/// @brief Calls VMA to create, allocate and bind the image
+/// @param imageInfo decription of the image
+/// @param memoryUsage usualy VMA_MEMORY_USAGE_CPU_TO_GPU
+/// @param image empty image
+void Device::createImageWithInfo(const VkImageCreateInfo& imageInfo, VmaAllocationCreateInfo allocInfo, AllocatedImage& image)
 {
-    if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS)
+    if (vmaCreateImage(vmallocator, &imageInfo, &allocInfo, &image.image, &image.allocation, nullptr))
         throw std::runtime_error("failed to create image!");
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device_, image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize  = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(device_, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
-        throw std::runtime_error("failed to allocate image memory!");
-
-    if (vkBindImageMemory(device_, image, imageMemory, 0) != VK_SUCCESS)
-        throw std::runtime_error("failed to bind image memory!");
 }

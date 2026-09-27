@@ -1,9 +1,11 @@
-#pragma once
+#ifndef DEVICE_CLASS_H
+#define DEVICE_CLASS_H
 
-// std lib headers
 #include <vector>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vma/vk_mem_alloc.h>
 
 class Window;
 
@@ -22,10 +24,24 @@ struct QueueFamilyIndices
     bool     presentFamilyHasValue  = false;
 };
 
+struct AllocatedBuffer
+{
+    VkBuffer      buffer;
+    VmaAllocation allocation;
+};
+
+struct AllocatedImage
+{
+    VkImage       image;
+    VkImageView   imageView;
+    VmaAllocation allocation;
+};
+
 class Device
 {
 private:
-    VkInstance               instance;  // connection between the application and the Vulkan library itself
+    VkInstance               instance;
+    VmaAllocator             vmallocator;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
     Window&                  window;
@@ -40,6 +56,7 @@ private:
     const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
     void createInstance();
+    void createVMA();
     void setupDebugMessenger();
     void createSurface();
     void pickPhysicalDevice();
@@ -81,15 +98,19 @@ public:
     uint32_t                findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice);
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    VmaAllocator            getVMA() const { return vmallocator; }
+    VkPhysicalDevice        getPhysicalDevice() const { return physicalDevice; }
 
-    void            createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags bufferUsage, VmaAllocationCreateInfo allocUsage, AllocatedBuffer& buffer);
+    void createImageWithInfo(const VkImageCreateInfo& imageInfo, VmaAllocationCreateInfo allocInfo, AllocatedImage& image);
+
     VkCommandBuffer beginSingleTimeCommands();
     void            endSingleTimeCommands(VkCommandBuffer commandBuffer);
     void            copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void            copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
     void            transitionImageLayout(VkImage image, VkImageSubresourceRange range, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-    void createImageWithInfo(const VkImageCreateInfo& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
     VkPhysicalDeviceProperties properties;
 };
+
+#endif

@@ -8,77 +8,80 @@ Mesh::Mesh(Device& device, const std::vector<Vertex>& vertices, const std::vecto
     VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * static_cast<uint32_t>(vertices.size());
     VkDeviceSize indexBufferSize  = sizeof(indices[0]) * static_cast<uint32_t>(indices.size());
 
-    VkBuffer       tempVertexBuffer;
-    VkDeviceMemory tempVertexBufferMemory;
-    VkBuffer       tempIndexBuffer;
-    VkDeviceMemory tempIndexBufferMemory;
+    AllocatedBuffer tempVertexBuffer;
+    AllocatedBuffer tempIndexBuffer;
 
     {  // no need to auto flush/send since COHERENT_BIT makes it automatically}
-        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
+        allocInfo.flags         = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+        VkBufferUsageFlags vertexBufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VkBufferUsageFlags indexBufferUsage  = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
         // Note Host -> CPU, Device -> GPU
-        device.createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, tempVertexBuffer, tempVertexBufferMemory);
-        device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, tempIndexBuffer, tempIndexBufferMemory);
+        device.createBuffer(vertexBufferSize, vertexBufferUsage, allocInfo, tempVertexBuffer);
+        device.createBuffer(indexBufferSize, indexBufferUsage, allocInfo, tempIndexBuffer);
 
         {
             void* data;
-            vkMapMemory(device.device(), tempVertexBufferMemory, 0, vertexBufferSize, 0, &data);
+            vmaMapMemory(device.getVMA(), tempVertexBuffer.allocation, &data);
             memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
-            vkUnmapMemory(device.device(), tempVertexBufferMemory);
+            vmaUnmapMemory(device.getVMA(), tempVertexBuffer.allocation);
         }
 
         {
             void* data;
-            vkMapMemory(device.device(), tempIndexBufferMemory, 0, indexBufferSize, 0, &data);
+            vmaMapMemory(device.getVMA(), tempIndexBuffer.allocation, &data);
             memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
-            vkUnmapMemory(device.device(), tempIndexBufferMemory);
+            vmaUnmapMemory(device.getVMA(), tempIndexBuffer.allocation);
         }
     }
 
     {
-        VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
 
-        device.createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, properties, vertexBuffer, vertexBufferMemory);
-        device.createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, properties, indexBuffer, indexBufferMemory);
+        VkBufferUsageFlags vertexBufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        VkBufferUsageFlags indexBufferUsage  = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-        device.copyBuffer(tempVertexBuffer, vertexBuffer, vertexBufferSize);
-        device.copyBuffer(tempIndexBuffer, indexBuffer, indexBufferSize);
+        device.createBuffer(vertexBufferSize, vertexBufferUsage, allocInfo, vertexBuffer);
+        device.createBuffer(indexBufferSize, indexBufferUsage, allocInfo, indexBuffer);
+
+        device.copyBuffer(tempVertexBuffer.buffer, vertexBuffer.buffer, vertexBufferSize);
+        device.copyBuffer(tempIndexBuffer.buffer, indexBuffer.buffer, indexBufferSize);
     }
 
-    vkDestroyBuffer(device.device(), tempVertexBuffer, nullptr);
-    vkFreeMemory(device.device(), tempVertexBufferMemory, nullptr);
-    vkDestroyBuffer(device.device(), tempIndexBuffer, nullptr);
-    vkFreeMemory(device.device(), tempIndexBufferMemory, nullptr);
+    vmaDestroyBuffer(device.getVMA(), tempVertexBuffer.buffer, tempVertexBuffer.allocation);
+    vmaDestroyBuffer(device.getVMA(), tempIndexBuffer.buffer, tempIndexBuffer.allocation);
 }
 
 Mesh::Mesh(Mesh&& other) noexcept
     : device(other.device), vertices(std::move(other.vertices)), indices(std::move(other.indices))
 {
-    vertexBuffer       = other.vertexBuffer;
-    vertexBufferMemory = other.vertexBufferMemory;
-    indexBuffer        = other.indexBuffer;
-    indexBufferMemory  = other.indexBufferMemory;
-    materialID         = other.materialID;
+    vertexBuffer = other.vertexBuffer;
+    indexBuffer  = other.indexBuffer;
+    materialID   = other.materialID;
 
-    other.vertexBuffer       = VK_NULL_HANDLE;
-    other.vertexBufferMemory = VK_NULL_HANDLE;
-    other.indexBuffer        = VK_NULL_HANDLE;
-    other.indexBufferMemory  = VK_NULL_HANDLE;
+    other.vertexBuffer.buffer     = VK_NULL_HANDLE;
+    other.vertexBuffer.allocation = VK_NULL_HANDLE;
+    other.indexBuffer.buffer      = VK_NULL_HANDLE;
+    other.indexBuffer.allocation  = VK_NULL_HANDLE;
 }
 
 Mesh::~Mesh()
 {
-    vkDestroyBuffer(device.device(), vertexBuffer, nullptr);
-    vkFreeMemory(device.device(), vertexBufferMemory, nullptr);
-    vkDestroyBuffer(device.device(), indexBuffer, nullptr);
-    vkFreeMemory(device.device(), indexBufferMemory, nullptr);
+    vmaDestroyBuffer(device.getVMA(), vertexBuffer.buffer, vertexBuffer.allocation);
+    vmaDestroyBuffer(device.getVMA(), indexBuffer.buffer, indexBuffer.allocation);
 }
 
 void Mesh::Draw(VkCommandBuffer commandBuffer, glm::mat4 model, glm::mat3 normal) const
 {
     VkDeviceSize pOffsets = 0;
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &pOffsets);
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, &pOffsets);
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 }
 

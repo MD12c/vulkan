@@ -1,30 +1,39 @@
 #include "Texture.h"
+#include <stdexcept>
+#include "Graphics/vkBackend/Device.h"
+#include <vma/vk_mem_alloc.h>
 
 Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, int widthImg, int heightImg, int numColCh)
     : device(device), textureType(textureType)
 {
-    void*          pixel_ptr    = bytes;
-    int            mipMapLevels = (int)floor(log2(fmax(widthImg, heightImg))) + 1;
-    VkBuffer       tempImageBuffer;
-    VkDeviceMemory tempImageBufferMemory;
-    VkFormat format = (textureType == ALBEDO) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+    void*    pixel_ptr    = bytes;
+    int      mipMapLevels = (int)floor(log2(fmax(widthImg, heightImg))) + 1;
+    VkFormat format       = (textureType == ALBEDO) ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
 
+    AllocatedBuffer tempImageBuffer;
     {
-        VkMemoryPropertyFlags propertiesBuffer = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        VkDeviceSize          imageSize        = static_cast<VkDeviceSize>(widthImg) * static_cast<VkDeviceSize>(heightImg) * 4;
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
+        allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        allocInfo.flags         = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-        device.createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, propertiesBuffer, tempImageBuffer, tempImageBufferMemory);
+        VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VkDeviceSize       imageSize   = static_cast<VkDeviceSize>(widthImg) * static_cast<VkDeviceSize>(heightImg) * 4;
+
+        device.createBuffer(imageSize, bufferUsage, allocInfo, tempImageBuffer);
 
         {
             void* data;
-            vkMapMemory(device.device(), tempImageBufferMemory, 0, imageSize, 0, &data);
+            vmaMapMemory(device.getVMA(), tempImageBuffer.allocation, &data);
             memcpy(data, pixel_ptr, static_cast<size_t>(imageSize));
-            vkUnmapMemory(device.device(), tempImageBufferMemory);
+            vmaUnmapMemory(device.getVMA(), tempImageBuffer.allocation);
         }
     }
 
     {
-        VkMemoryPropertyFlags propertiesImage = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
+        allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
         VkImageCreateInfo imageInfo{};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -41,13 +50,13 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
         imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
-        device.createImageWithInfo(imageInfo, propertiesImage, imageBuffer, imageBufferMemory);
+        device.createImageWithInfo(imageInfo, allocInfo, imageBuffer);
     }
 
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image                           = imageBuffer;
+        viewInfo.image                           = imageBuffer.image;
         viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format                          = format;
         viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -56,7 +65,8 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
 
-        vkCreateImageView(device.device(), &viewInfo, nullptr, &imageView);
+        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &imageBuffer.imageView))
+            throw std::runtime_error("[ERROR] failed to create image view");
     }
 
     {
@@ -68,32 +78,19 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
         fullRange.layerCount     = 1;
 
         // Move ALL levels to TRANSFER_DST first so we can copy into level 0
-        device.transitionImageLayout(imageBuffer, fullRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        device.transitionImageLayout(imageBuffer.image, fullRange, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-        device.copyBufferToImage(tempImageBuffer, imageBuffer, widthImg, heightImg, 1);
+        device.copyBufferToImage(tempImageBuffer.buffer, imageBuffer.image, widthImg, heightImg, 1);
 
-        generateMipmaps(imageBuffer, widthImg, heightImg, mipMapLevels);
+        generateMipmaps(imageBuffer.image, widthImg, heightImg, mipMapLevels);
     }
 
-    {
-        VkImageSubresourceRange range;
-        range.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        range.baseMipLevel   = 0;
-        range.levelCount     = mipMapLevels;
-        range.baseArrayLayer = 0;
-        range.layerCount     = 1;
-
-        device.transitionImageLayout(imageBuffer, range, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-        device.copyBufferToImage(tempImageBuffer, imageBuffer, widthImg, heightImg, 1);
-
-        device.transitionImageLayout(imageBuffer, range, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    }
-
-    vkDestroyBuffer(device.device(), tempImageBuffer, nullptr);
-    vkFreeMemory(device.device(), tempImageBufferMemory, nullptr);
+    vmaDestroyBuffer(device.getVMA(), tempImageBuffer.buffer, tempImageBuffer.allocation);
 
     {
+        VkPhysicalDeviceProperties props{};
+        vkGetPhysicalDeviceProperties(device.getPhysicalDevice(), &props);
+
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter               = VK_FILTER_LINEAR;
@@ -102,8 +99,8 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
         samplerInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.anisotropyEnable        = VK_TRUE;  // for me
-        samplerInfo.maxAnisotropy           = 1.0f;
-        samplerInfo.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.maxAnisotropy           = props.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor             = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable           = VK_FALSE;
         samplerInfo.compareOp               = VK_COMPARE_OP_ALWAYS;
@@ -112,15 +109,15 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
         samplerInfo.minLod                  = 0.0f;
         samplerInfo.maxLod                  = static_cast<float>(mipMapLevels);
 
-        vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler);
+        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler))
+            throw std::runtime_error("[ERROR] failed to create sampler");
     }
 }
 
 Texture::~Texture()
 {
-    vkDestroyImageView(device.device(), imageView, nullptr);
-    vkDestroyImage(device.device(), imageBuffer, nullptr);
-    vkFreeMemory(device.device(), imageBufferMemory, nullptr);
+    vkDestroyImageView(device.device(), imageBuffer.imageView, nullptr);
+    vmaDestroyImage(device.getVMA(), imageBuffer.image, imageBuffer.allocation);
     vkDestroySampler(device.device(), sampler, nullptr);
 }
 

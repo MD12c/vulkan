@@ -2,18 +2,19 @@
 
 #include "vulkan/vulkan_core.h"
 #include "../Window.h"
+#include "../vkBackend/Device.h"
 
 Camera::Camera(Device& device, Window& window) : device(device), window(window)
 {
 }
 
-void Camera::updateUniforms(VkDeviceMemory& bufferMemory) const
+void Camera::updateUniforms(VmaAllocation& allocation) const
 {
     Payload payload(proj, view, Position);  // TODO try glm::inverse(view) after
     void*   data;
-    vkMapMemory(device.device(), bufferMemory, 0, payloadSize, 0, &data);
+    vmaMapMemory(device.getVMA(), allocation, &data);
     memcpy(data, (void*)&payload, static_cast<size_t>(payloadSize));
-    vkUnmapMemory(device.device(), bufferMemory);
+    vmaUnmapMemory(device.getVMA(), allocation);
 }
 
 glm::vec2 Camera::screenToWorld(const glm::vec2& pos)

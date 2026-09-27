@@ -32,17 +32,13 @@ private:
 
     // Main Pass
     std::vector<VkFramebuffer> mainPassFramebuffers;
-    VkImage                    mainDepthImage;
-    VkImageView                mainDepthImageView;
-    VkDeviceMemory             mainDepthImageMemory;
+    AllocatedImage             mainDepthImage;
 
     // Depth Pass
     struct ShadowMap
     {
         VkFramebuffer  framebuffer;
-        VkImage        image;
-        VkImageView    imageView;
-        VkDeviceMemory memory;
+        AllocatedImage image;
     };
     std::vector<ShadowMap> shadowMaps;
 
@@ -54,7 +50,7 @@ private:
     void createMainDepthResources();
     void createMainFramebuffers();
     void createShadowFramebuffers();
-    
+
     void createCommandBuffers();
     void recordCommandBuffer(int imageIndex, const Scene& scene);
     void freeCommandBuffers();

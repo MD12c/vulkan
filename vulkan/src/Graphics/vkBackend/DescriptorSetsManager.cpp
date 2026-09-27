@@ -1,6 +1,7 @@
 #include "DescriptorSetsManager.h"
 
 #include "../Cameras/Camera.h"
+#include "Device.h"
 
 #include <stdexcept>
 
@@ -72,24 +73,26 @@ DescriptorSetsManager::~DescriptorSetsManager()
     vkDestroyDescriptorSetLayout(device.device(), globalSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(device.device(), textureSetLayout, nullptr);
     vkDestroyDescriptorPool(device.device(), descriptorPool, nullptr);
+
     for (const auto& descriptor : bufferDescriptors)
     {
         for (const auto& Buffer : descriptor.Buffers)
-        {
-            vkDestroyBuffer(device.device(), Buffer.buffer, nullptr);
-            vkFreeMemory(device.device(), Buffer.bufferMemory, nullptr);
-        }
+            vmaDestroyBuffer(device.getVMA(), Buffer.buffer, Buffer.allocation);
     }
 }
 
 void DescriptorSetsManager::allocDescriptor(size_t bufferSize, int descriptorIndex)
 {
-    VkBufferUsageFlags    usage      = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    allocInfo.flags         = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+    VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
     for (int i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
     {
-        device.createBuffer(bufferSize, usage, properties, bufferDescriptors[descriptorIndex].Buffers[i].buffer, bufferDescriptors[descriptorIndex].Buffers[i].bufferMemory);
+        device.createBuffer(bufferSize, bufferUsage, allocInfo, bufferDescriptors[descriptorIndex].Buffers[i]);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.pNext              = nullptr;

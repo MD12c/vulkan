@@ -29,11 +29,9 @@ struct alignas(16) Vertex
 class Mesh
 {
 private:
-    Device&        device;
-    VkBuffer       vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer       indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    Device&         device;
+    AllocatedBuffer vertexBuffer;
+    AllocatedBuffer indexBuffer;
 
 public:
     std::vector<Vertex>   vertices;

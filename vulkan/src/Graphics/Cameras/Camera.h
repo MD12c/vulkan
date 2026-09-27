@@ -47,7 +47,7 @@ public:
     Camera(Camera&&)              = delete;
     Camera& operator=(Camera&&)   = delete;
 
-    void      updateUniforms(VkDeviceMemory& bufferMemory) const;
+    void      updateUniforms(VmaAllocation& allocation) const;
     glm::vec2 screenToWorld(const glm::vec2& pos);
 
     virtual void  updateScreenSize()                                        = 0;

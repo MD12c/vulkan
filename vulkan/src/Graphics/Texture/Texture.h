@@ -9,9 +9,7 @@ class Texture
 private:
     Device& device;
 
-    VkImage        imageBuffer;
-    VkImageView    imageView;
-    VkDeviceMemory imageBufferMemory;
+    AllocatedImage imageBuffer;
     VkSampler      sampler;
 
     void generateMipmaps(VkImage image, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
@@ -38,7 +36,7 @@ public:
     Texture& operator=(Texture&& other) = delete;
 
     VkSampler   getSampler() { return sampler; }
-    VkImageView getImageView() { return imageView; }
+    VkImageView getImageView() { return imageBuffer.imageView; }
 };
 
 #endif

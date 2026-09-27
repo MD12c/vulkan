@@ -23,12 +23,8 @@ public:
 
     struct Descriptor
     {
-        struct Buffer
-        {
-            VkBuffer       buffer;
-            VkDeviceMemory bufferMemory;
-        };
-        std::array<Buffer, Globals::MAX_FRAMES_IN_FLIGHT>          Buffers;
+        AllocatedBuffer                                            buffer;
+        std::array<AllocatedBuffer, Globals::MAX_FRAMES_IN_FLIGHT> Buffers;
         std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
     };
     std::array<Descriptor, NUM_BUFFER_BINDINGS> bufferDescriptors{};

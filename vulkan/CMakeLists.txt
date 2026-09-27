@@ -16,6 +16,7 @@ set(GRAPHICS_SOURCES
 )
 
 set(VULKAN_BACKEND_SOURCES
+    src/Graphics/vkBackend/vkMemoryAlloc.cpp
     src/Graphics/vkBackend/Pipeline.cpp
     src/Graphics/vkBackend/Pipeline.h
     src/Graphics/vkBackend/Device.cpp
@@ -117,7 +118,7 @@ target_include_directories(glfw INTERFACE include/libraries)
 target_link_libraries(glfw INTERFACE opengl32 gdi32 user32 shell32)
 
 # stb
-add_library(stb STATIC src/stb.cpp)
+add_library(stb STATIC src/Graphics/Texture/stb.cpp)
 target_include_directories(stb PRIVATE include/libraries)
 
 # vulkan
