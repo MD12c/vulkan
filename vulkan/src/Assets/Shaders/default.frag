@@ -85,7 +85,7 @@ vec2 getUVs()
     UVs                 = prevTexCoords * weight + UVs * (1.0f - weight);
 
     if (UVs.x > 1.0 || UVs.y > 1.0 || UVs.x < 0.0 || UVs.y < 0.0)
-        discard;
+        return aTex;
 
     return UVs;
 }
@@ -182,12 +182,11 @@ void main()
     const float crntMetalic   = texture(metallicRoughness0, UVs).b;
     const float crntRoughness = texture(metallicRoughness0, UVs).g;
 
-    const vec3 N        = getNormal(UVs);                           // normal
-    const vec3 Wo       = normalize(cameraData.camPos - aCrntPos);  // view dir
-    vec3       F0       = vec3(0.04);
-    F0                  = mix(F0, crntAlbedo.xyz, crntMetalic);
-    const float ao      = texture(ao0, UVs).r;  // ambient occlusion
-    vec3        ambient = vec3(ao);             // for now no IBL
+    const vec3  N       = getNormal(UVs);                                 // normal
+    const vec3  Wo      = normalize(cameraData.camPos - aCrntPos);        // view dir
+    const vec3  F0      = mix(vec3(0.02f), crntAlbedo.xyz, crntMetalic);  // fresnel constant
+    const float ao      = texture(ao0, UVs).r;                            // ambient occlusion
+    const vec3  ambient = vec3(crntAlbedo * (1.0f - ao + 0.02f));         // for now no IBL
 
     for (int i = 0; i < numDirLights; i++)
     {
@@ -196,5 +195,5 @@ void main()
         sum += Fr(crntAlbedo.xyz, crntRoughness, crntMetalic, F0, Wo, Wi, N, HalfWay) * direcLight(i, Wi, N) * max(dot(N, Wi), 0.0);
     }
 
-    FragColor = vec4(sum, 1.0f);
+    FragColor = vec4(sum, 1.0f) + vec4(ambient, 1.0f);
 }
