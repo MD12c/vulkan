@@ -95,17 +95,6 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         renderPassInfo.clearValueCount   = 1;
         renderPassInfo.pClearValues      = &clearValues;
 
-        VkViewport viewport{};
-        viewport.x        = 0.0f;
-        viewport.y        = 0.0f;
-        viewport.width    = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_WIDTH);
-        viewport.height   = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_HEIGHT);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        VkRect2D scissor{ { 0, 0 }, { ShadowMapDimensions::SHADOW_MAP_WIDTH, ShadowMapDimensions::SHADOW_MAP_HEIGHT } };
-        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
-        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
-
         for (const auto& dirLight : scene.directionLights)
         {
             renderPassInfo.framebuffer = lightsManager.dir.framebuffers[dirLight.layerIndex];
@@ -216,13 +205,26 @@ void Renderer::createPipelines()
         assert(pipelineLayoutDepth2D != nullptr && "Cannot create pipeline before pipeline layout");
         renderPassManager.recreateShadowRenderPassLayout();
 
+        VkViewport viewport{};
+        viewport.x        = 0.0f;
+        viewport.y        = 0.0f;
+        viewport.width    = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_WIDTH);
+        viewport.height   = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_HEIGHT);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        VkRect2D scissor{ { 0, 0 }, { ShadowMapDimensions::SHADOW_MAP_WIDTH, ShadowMapDimensions::SHADOW_MAP_HEIGHT } };
+
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-        pipelineConfig.renderPass            = renderPassManager.getShadowRenderPass();
-        pipelineConfig.pipelineLayout        = pipelineLayoutDepth2D;
-        pipelineConfig.bindingDescriptions   = Vertex::getBindingDescriptions();
-        pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
-        shadowPipeline                       = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
+        pipelineConfig.renderPass              = renderPassManager.getShadowRenderPass();
+        pipelineConfig.pipelineLayout          = pipelineLayoutDepth2D;
+        pipelineConfig.bindingDescriptions     = Vertex::getBindingDescriptions();
+        pipelineConfig.attributeDescriptions   = Vertex::getAttributeDescriptions();
+        pipelineConfig.dynamicStateEnables     = {};
+        pipelineConfig.dynamicStateInfo        = {};
+        pipelineConfig.viewportInfo.pViewports = &viewport;
+        pipelineConfig.viewportInfo.pScissors  = &scissor;
+        shadowPipeline                         = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
     }
 }
 
