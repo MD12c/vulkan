@@ -17,7 +17,6 @@ private:
     Device&    device;
     VkExtent2D windowExtent;
     VkExtent2D swapChainExtent;
-    VkFormat   swapChainImageFormat;
 
     VkSwapchainKHR             swapChain;
     std::shared_ptr<SwapChain> oldSwapchain;
@@ -38,7 +37,6 @@ private:
     void createSyncObjects();
 
     // Helper functions
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR   chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D         chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
@@ -54,7 +52,6 @@ public:
     // clang-format off
     VkImageView getMainColorImageView(size_t index) const { return mainColorImageViews[index]; }
     size_t      getMainImageCount()                 const { return mainColorImages.size(); }
-    VkFormat    getSwapChainImageFormat()           const { return swapChainImageFormat; }
     VkExtent2D  getSwapChainExtent()                const { return swapChainExtent; }
     uint32_t    getWidth()                          const { return swapChainExtent.width; }
     uint32_t    getHeight()                         const { return swapChainExtent.height; }

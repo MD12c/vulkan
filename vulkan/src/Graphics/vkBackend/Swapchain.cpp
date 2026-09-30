@@ -161,9 +161,9 @@ void SwapChain::createSwapChain()
 {
     SwapChainSupportDetails swapChainSupport = device.getSwapChainSupport();
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkSurfaceFormatKHR surfaceFormat = device.getSwapSurfaceFormat();
     VkPresentModeKHR   presentMode   = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D         extent        = chooseSwapExtent(swapChainSupport.capabilities);
+    swapChainExtent                  = chooseSwapExtent(swapChainSupport.capabilities);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
@@ -175,7 +175,7 @@ void SwapChain::createSwapChain()
     createInfo.minImageCount    = imageCount;
     createInfo.imageFormat      = surfaceFormat.format;
     createInfo.imageColorSpace  = surfaceFormat.colorSpace;
-    createInfo.imageExtent      = extent;
+    createInfo.imageExtent      = swapChainExtent;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -211,25 +211,6 @@ void SwapChain::createSwapChain()
     vkGetSwapchainImagesKHR(device.device(), swapChain, &imageCount, nullptr);
     mainColorImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device.device(), swapChain, &imageCount, mainColorImages.data());
-
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent      = extent;
-}
-
-/// @brief Goes throught all the `availableFormats` and picks the one that is `VK_FORMAT_B8G8R8A8_SRGB` && `VK_COLOR_SPACE_SRGB_NONLINEAR_KHR`
-///
-/// Otherwise default to the first format available
-/// @param availableFormats list of { VkFormat and VkColorSpaceKHR }
-/// @return Format that is available if not the one desired
-VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-{
-    for (const auto& availableFormat : availableFormats)
-    {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            return availableFormat;
-    }
-
-    return availableFormats[0];
 }
 
 /// @brief Goes through all the availablePresentModes and picks the one that is `VK_PRESENT_MODE_MAILBOX_KHR`
@@ -287,7 +268,7 @@ void SwapChain::createImageViews()
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = mainColorImages[i];
         viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format                          = swapChainImageFormat;
+        viewInfo.format                          = device.getSwapSurfaceFormat().format;
         viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         viewInfo.subresourceRange.baseMipLevel   = 0;
         viewInfo.subresourceRange.levelCount     = 1;
@@ -302,7 +283,7 @@ void SwapChain::createImageViews()
 void SwapChain::createSyncObjects()
 {
     imageAvailableSemaphores.resize(Globals::MAX_FRAMES_IN_FLIGHT);  // Rendering into this image is done, safe to present
-    renderFinishedSemaphores.resize(getMainImageCount());                   // This image is done being displayed, safe to render into again
+    renderFinishedSemaphores.resize(getMainImageCount());            // This image is done being displayed, safe to render into again
     inFlightFences.resize(Globals::MAX_FRAMES_IN_FLIGHT);            // don't let the CPU start recording a new command buffer into this frame slot until GPU is done with the previous use of that same slot
     imagesInFlight.resize(getMainImageCount(), VK_NULL_HANDLE);
 

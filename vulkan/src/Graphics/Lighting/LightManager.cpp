@@ -18,9 +18,6 @@
 LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass renderPass, DescriptorSetsManager& descriptorSetsManager)
     : device(device), descriptorSetsManager(descriptorSetsManager)
 {
-    VkFormat                     format = depthFormat;
-    const VkDescriptorSetLayout& cache  = descriptorSetsManager.getShadowSetLayout();
-
     {  // imageArray creation
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
@@ -34,7 +31,7 @@ LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass re
         imageInfo.extent.depth  = 1;
         imageInfo.mipLevels     = 1;
         imageInfo.arrayLayers   = ShadowMapDimensions::MAX_DIR_LIGHTS;
-        imageInfo.format        = format;
+        imageInfo.format        = depthFormat;
         imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
@@ -48,7 +45,7 @@ LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass re
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = dir.imageArray.image;
         viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        viewInfo.format                          = format;
+        viewInfo.format                          = depthFormat;
         viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
         viewInfo.subresourceRange.baseMipLevel   = 0;
         viewInfo.subresourceRange.levelCount     = 1;
@@ -76,7 +73,7 @@ LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass re
             viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             viewInfo.image                           = dir.imageArray.image;
             viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-            viewInfo.format                          = format;
+            viewInfo.format                          = depthFormat;
             viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
             viewInfo.subresourceRange.baseMipLevel   = 0;
             viewInfo.subresourceRange.levelCount     = 1;
@@ -142,7 +139,7 @@ LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass re
     {  // descriptor sets init
         for (uint32_t i = 0; i < Globals::MAX_FRAMES_IN_FLIGHT; i++)
         {
-            descriptorSetsManager.allocateSet(cache, dir.descriptorSets[i]);
+            descriptorSetsManager.allocateSet(descriptorSetsManager.getShadowSetLayout(), dir.descriptorSets[i]);
 
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = dir.buffers[i].buffer;

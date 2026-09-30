@@ -1,6 +1,7 @@
 #ifndef POINT_LIGHT_CLASS_H
 #define POINT_LIGHT_CLASS_H
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -14,7 +15,6 @@ class PointLight
 {
 private:
     glm::vec3   pos, color;
-    const float farPlane;
 
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 shadowMatrices[6];
@@ -50,9 +50,9 @@ public:
     };
 
     PointLight(uint32_t layerIndex, glm::vec3 lightPos, glm::vec3 lightColor, float zNear, float zFar)
-        : pos(lightPos),  color(lightColor), farPlane(zFar), layerIndex(layerIndex)
+        : pos(lightPos),  color(lightColor), layerIndex(layerIndex)
     {
-        proj = glm::perspective(glm::radians(90.0f), 1.0f, zNear, farPlane);
+        proj = glm::perspective(glm::radians(90.0f), 1.0f, zNear, zFar);
         for (int i = 0; i < 6; i++)
             shadowMatrices[i] = proj * glm::lookAt(lightPos, lightPos + cubeFaces[i].dir, cubeFaces[i].up);
     }
@@ -80,7 +80,6 @@ public:
     void      setColor(glm::vec3 newColor) { color = newColor; }
     glm::vec3 getPosition() const { return pos; }
     glm::vec3 getColor() const { return color; }
-    float     getFarPlane() const { return farPlane; }
 };
 
 #endif

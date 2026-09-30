@@ -473,6 +473,25 @@ SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
     return details;
 }
 
+/// @brief Goes throught all the `availableFormats` and picks the one that is `VK_FORMAT_B8G8R8A8_SRGB` && `VK_COLOR_SPACE_SRGB_NONLINEAR_KHR`
+///
+/// Otherwise default to the first format available
+/// @param availableFormats list of { VkFormat and VkColorSpaceKHR }
+/// @return Format that is available if not the one desired
+VkSurfaceFormatKHR Device::getSwapSurfaceFormat()
+{
+    SwapChainSupportDetails supportDetails = getSwapChainSupport();
+
+    for (const auto& availableFormat : supportDetails.formats)
+    {
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return availableFormat;
+    }
+
+    return supportDetails.formats[0];
+}
+
+
 /// @brief Gets the supported image format from the required image features.
 /// @param candidates list of desired image formats in order of preferance e.g. `{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}`
 /// @param tiling `VK_IMAGE_TILING_OPTIMAL` for optimal GPU packing, `VK_IMAGE_TILING_LINEAR` for CPU access

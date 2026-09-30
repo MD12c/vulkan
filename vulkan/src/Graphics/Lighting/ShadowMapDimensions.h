@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/ext/matrix_float4x4.hpp>
 
 namespace ShadowMapDimensions

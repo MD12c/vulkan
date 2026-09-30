@@ -48,8 +48,8 @@ public:
 
     void createRenderPass(VkRenderPass& renderPass, RenderPassConfigInfo& renderPassConfigInfo);
 
-    void createMainRenderPassLayout(SwapChain& swapchain);
-    void createShadowRenderPassLayout();
+    void recreateMainRenderPassLayout();
+    void recreateShadowRenderPassLayout();
 
     VkRenderPass getMainRenderPass() const { return mainRenderPass; }
     VkRenderPass getShadowRenderPass() const { return shadowRenderPass; }

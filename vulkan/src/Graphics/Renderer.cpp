@@ -202,7 +202,7 @@ void Renderer::createPipelines()
 {
     {  // main pipeline creation
         assert(pipelineLayoutDefault != nullptr && "Cannot create pipeline before pipeline layout");
-        renderPassManager.createMainRenderPassLayout(*swapchain);
+        renderPassManager.recreateMainRenderPassLayout();
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);
@@ -214,7 +214,7 @@ void Renderer::createPipelines()
     }
     {  // shadow pipeline creation
         assert(pipelineLayoutDepth2D != nullptr && "Cannot create pipeline before pipeline layout");
-        renderPassManager.createShadowRenderPassLayout();
+        renderPassManager.recreateShadowRenderPassLayout();
 
         PipelineConfigInfo pipelineConfig{};
         Pipeline::defaultPipelineConfigInfo(pipelineConfig);

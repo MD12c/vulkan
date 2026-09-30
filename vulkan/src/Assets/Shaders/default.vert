@@ -27,10 +27,10 @@ cameraData;
 
 void main()
 {
-    vec4 crntPos = cameraData.view * push.model * vec4(aPos, 1.0f);
+    vec4 crntPos = push.model * vec4(aPos, 1.0f);
     oTangent     = normalize(vec3(push.model * vec4(aTangent, 0.0f)));
     oTex         = aTex;
     oNormal      = mat3(push.normal) * aNormal;
     oCrntPos     = crntPos.rgb;
-    gl_Position  = cameraData.proj * crntPos;
+    gl_Position  = cameraData.proj * cameraData.view * crntPos;
 }

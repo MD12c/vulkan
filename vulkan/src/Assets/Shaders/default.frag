@@ -147,9 +147,12 @@ vec3 direcLight(int i, vec3 lightDir, vec3 N)
     vec4  fragPosLight = dirShadowMatrix[i] * vec4(aCrntPos, 1.0);
     float shadow       = 0.0f;
     vec3  lightCoords  = fragPosLight.xyz / fragPosLight.w;
-    if (lightCoords.z <= 1.0f)
+    lightCoords.xy     = lightCoords.xy * 0.5 + 0.5;
+
+    if (lightCoords.z <= 1.0 && lightCoords.z >= 0.0 &&
+        lightCoords.x >= 0.0 && lightCoords.x <= 1.0 &&
+        lightCoords.y >= 0.0 && lightCoords.y <= 1.0)
     {
-        lightCoords        = (lightCoords + 1.0f) / 2.0f;  // [-1, 1] range to [0, 1]
         float currentDepth = lightCoords.z;
         float bias         = max(0.0025f * (1.0f - dot(N, normalize(lightDir))), 0.0005f);
 
@@ -168,7 +171,7 @@ vec3 direcLight(int i, vec3 lightDir, vec3 N)
     }
 
     return (1.0f - shadow) * dirLightColor[i].xyz;
-    // return vec4(vec3(shadow), 1.0f);  // for debugging shadows (shows shadow regions in white)
+    // return vec3(shadow);  // for debugging shadows (shows shadow regions in white)
 }
 
 void main()

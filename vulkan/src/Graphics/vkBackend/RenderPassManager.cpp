@@ -2,12 +2,11 @@
 
 #include <stdexcept>
 
-#include "Swapchain.h"
-
 RenderPassManager::RenderPassManager(Device& device)
     : device(device)
 {
-    createShadowRenderPassLayout();
+    recreateMainRenderPassLayout();
+    recreateShadowRenderPassLayout();
 }
 
 RenderPassManager::~RenderPassManager()
@@ -34,8 +33,10 @@ void RenderPassManager::createRenderPass(VkRenderPass& renderPass, RenderPassCon
         throw std::runtime_error("failed to create render pass!");
 }
 
-void RenderPassManager::createMainRenderPassLayout(SwapChain& swapchain)
+void RenderPassManager::recreateMainRenderPassLayout()
 {
+    vkDestroyRenderPass(device.device(), mainRenderPass, nullptr);
+
     const uint32_t                  NUM_ATTACHMENTS = 2;
     const uint32_t                  NUM_SUBPASSES   = 1;
     const uint32_t                  NUM_DEPENDACIES = 1;
@@ -43,7 +44,7 @@ void RenderPassManager::createMainRenderPassLayout(SwapChain& swapchain)
 
     {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format         = swapchain.getSwapChainImageFormat();
+        colorAttachment.format         = device.getSwapSurfaceFormat().format;
         colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;             // No MSAA
         colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;       // Clears color at start
         colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;      // Save color at end, VK_ATTACHMENT_STORE_OP_DONT_CARE makes cool glitch effect
@@ -89,8 +90,10 @@ void RenderPassManager::createMainRenderPassLayout(SwapChain& swapchain)
     createRenderPass(mainRenderPass, renderpassConfig);
 }
 
-void RenderPassManager::createShadowRenderPassLayout()
+void RenderPassManager::recreateShadowRenderPassLayout()
 {
+    vkDestroyRenderPass(device.device(), shadowRenderPass, nullptr);
+
     const uint32_t                  NUM_ATTACHMENTS = 1;
     const uint32_t                  NUM_SUBPASSES   = 1;
     const uint32_t                  NUM_DEPENDACIES = 2;

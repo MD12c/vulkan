@@ -5,6 +5,7 @@
 
 #include <cstdint>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -53,8 +54,9 @@ public:
     DirectionLight(uint32_t layerIndex, DirectionLightInfo createInfo)
         : pos(createInfo.lightPos), dir(createInfo.lightDirection), color(createInfo.lightColor), layerIndex(layerIndex)
     {
-        proj = glm::ortho(createInfo.left, createInfo.right, createInfo.bottom, createInfo.top, createInfo.zNear, createInfo.zFar);
+        proj = glm::orthoRH_ZO(createInfo.left, createInfo.right, createInfo.bottom, createInfo.top, createInfo.zNear, createInfo.zFar);
         view = glm::lookAt(createInfo.lightPos, createInfo.lightPos + createInfo.lightDirection, glm::vec3(0.0f, 1.0f, 0.0f));
+        proj[1][1] *= -1;
     }
 
     void BeginDepthPass(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, glm::mat4 model) const

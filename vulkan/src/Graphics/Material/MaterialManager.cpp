@@ -1,9 +1,10 @@
 #include "MaterialManager.h"
 
 #include <array>
-#include <vulkan/vulkan_core.h>
 #include <cstdint>
 #include <memory>
+
+#include <vulkan/vulkan_core.h>
 
 #include "Graphics/Texture/Texture.h"
 #include "IMaterial.h"
