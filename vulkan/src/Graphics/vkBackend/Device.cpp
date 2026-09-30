@@ -478,7 +478,7 @@ SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
 /// @param tiling `VK_IMAGE_TILING_OPTIMAL` for optimal GPU packing, `VK_IMAGE_TILING_LINEAR` for CPU access
 /// @param features image format features that will be used e.g. `VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT`, `VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT` . . .
 /// @return image format enum e.g. `VK_FORMAT_R8G8B8_UINT`, `VK_FORMAT_R32G32B32_SFLOAT` . . .
-VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
 {
     for (VkFormat format : candidates)
     {

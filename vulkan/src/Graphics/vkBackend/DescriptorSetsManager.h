@@ -1,11 +1,9 @@
 #ifndef DESCRIPTORSETS_MANAGER_CLASS_H
 #define DESCRIPTORSETS_MANAGER_CLASS_H
 
-#include <array>
 #include <cstddef>
 
 #include "Device.h"
-#include "Globals.h"
 
 class DescriptorSetsManager
 {
@@ -16,18 +14,12 @@ private:
 
     VkDescriptorSetLayout globalSetLayout;  // ordered collection of VkDescriptorSetLayoutBinding
     VkDescriptorSetLayout textureSetLayout;
+    VkDescriptorSetLayout shadowMapSetLayout;
 
 public:
     static constexpr size_t NUM_BUFFER_BINDINGS  = 1;
     static constexpr size_t NUM_SAMPLER_BINDINGS = 5;
-
-    struct Descriptor
-    {
-        AllocatedBuffer                                            buffer;
-        std::array<AllocatedBuffer, Globals::MAX_FRAMES_IN_FLIGHT> Buffers;
-        std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
-    };
-    std::array<Descriptor, NUM_BUFFER_BINDINGS> bufferDescriptors{};
+    static constexpr size_t NUM_SHADOW_BINDINGS  = 2;  //! change for future light types to 6
 
     DescriptorSetsManager(Device& device);
     ~DescriptorSetsManager();
@@ -36,11 +28,13 @@ public:
     DescriptorSetsManager(const DescriptorSetsManager&&)            = delete;
     DescriptorSetsManager& operator=(const DescriptorSetsManager&&) = delete;
 
-    void allocDescriptor(size_t bufferSize, int descriptorIndex);
+    void allocateSet(VkDescriptorSetLayout layout, VkDescriptorSet& descriptorSet);
+    void writeUniformBuffer(VkDescriptorSet set, uint32_t binding, VkBuffer buffer, VkDeviceSize bufferSize);
 
-    VkDescriptorSetLayout& getGlobalSetLayouts() { return globalSetLayout; }
-    VkDescriptorSetLayout& getTextureSetLayout() { return textureSetLayout; }
-    VkDescriptorPool&      getDescriptorPool() { return descriptorPool; }
+    const VkDescriptorSetLayout& getGlobalSetLayout() const { return globalSetLayout; }
+    const VkDescriptorSetLayout& getTextureSetLayout() const { return textureSetLayout; }
+    const VkDescriptorSetLayout& getShadowSetLayout() const { return shadowMapSetLayout; }
+    const VkDescriptorPool&      getDescriptorPool() const { return descriptorPool; }
 };
 
 #endif

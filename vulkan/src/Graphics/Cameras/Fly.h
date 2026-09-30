@@ -12,7 +12,7 @@ private:
     float sensitivity = 100.0f;
 
 public:
-    CameraFly(Device& device, Window& window, float FOVdeg, float nearPlane, float farPlane);
+    CameraFly(Device& device, Window& window, DescriptorSetsManager& descriptorSetManager, float FOVdeg, float nearPlane, float farPlane);
     virtual ~CameraFly() = default;
 
     void  updateScreenSize() override;

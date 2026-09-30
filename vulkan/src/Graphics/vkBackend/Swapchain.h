@@ -1,7 +1,7 @@
 #ifndef SWAPCHAIN_CLASS_H
 #define SWAPCHAIN_CLASS_H
 
-#include "device.h"
+#include "Device.h"
 #include "RenderPassManager.h"
 
 #include <vulkan/vulkan.h>
@@ -43,32 +43,6 @@ private:
     VkExtent2D         chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 public:
-    struct RenderPassConfigInfo
-    {
-        struct Attachment
-        {
-            VkAttachmentDescription attachmentDescription{};
-            VkAttachmentReference   attachmentReference{};
-        };
-        std::vector<Attachment>           attachments{};
-        std::vector<VkSubpassDescription> subpasses{};
-        std::vector<VkSubpassDependency>  dependencies{};
-
-        RenderPassConfigInfo(size_t numAttachments, size_t numSubpasses, size_t numDependancies)
-        {
-            attachments.resize(numAttachments);
-            subpasses.resize(numSubpasses);
-            dependencies.resize(numDependancies);
-        }
-
-        std::vector<VkAttachmentDescription> groupAttachments()
-        {
-            std::vector<VkAttachmentDescription> attachmentDescription;
-            for (auto& attachment : attachments) attachmentDescription.push_back(attachment.attachmentDescription);
-            return attachmentDescription;
-        }
-    };
-
     SwapChain(Device& deviceRef, VkExtent2D windowExtent);
     SwapChain(Device& deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous);
     ~SwapChain();
@@ -77,20 +51,17 @@ public:
     SwapChain(const SwapChain&&)      = delete;
     void operator=(const SwapChain&&) = delete;
 
-    void createRenderPass(VkRenderPass& renderPass, RenderPassConfigInfo& renderPassConfigInfo);
-
     // clang-format off
-    VkImageView   getMainColorImageView(size_t index) const { return mainColorImageViews[index]; }
-    size_t        getMainImageCount()                 const { return mainColorImages.size(); }
-    VkFormat      getSwapChainImageFormat()           const { return swapChainImageFormat; }
-    VkExtent2D    getSwapChainExtent()                const { return swapChainExtent; }
-    uint32_t      getWidth()                          const { return swapChainExtent.width; }
-    uint32_t      getHeight()                         const { return swapChainExtent.height; }
-    float         getExtentAspectRatio()              const { return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height); }
-    VkFormat      getDepthFormat()                    const { return device.findSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-                                                                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                                                                  VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT); }
+    VkImageView getMainColorImageView(size_t index) const { return mainColorImageViews[index]; }
+    size_t      getMainImageCount()                 const { return mainColorImages.size(); }
+    VkFormat    getSwapChainImageFormat()           const { return swapChainImageFormat; }
+    VkExtent2D  getSwapChainExtent()                const { return swapChainExtent; }
+    uint32_t    getWidth()                          const { return swapChainExtent.width; }
+    uint32_t    getHeight()                         const { return swapChainExtent.height; }
+    float       getExtentAspectRatio()              const { return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height); }
+    size_t      getCrntFrame()                      const { return currentFrame; }
     // clang-format on
+
     VkResult acquireNextImage(uint32_t* imageIndex);
     VkResult submitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
 };

@@ -1,8 +1,12 @@
 #ifndef CAMERA_CLASS_H
 #define CAMERA_CLASS_H
 
-#include "..\vkBackend\Device.h"
+#include <array>
+
+#include "../vkBackend\DescriptorSetsManager.h"
+#include "../vkBackend\Device.h"
 #include "../Window.h"
+#include "Globals.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/ext/vector_float3.hpp>
@@ -38,10 +42,17 @@ private:
     };
 
 public:
+    struct Descriptor
+    {
+        std::array<AllocatedBuffer, Globals::MAX_FRAMES_IN_FLIGHT> buffers;
+        std::array<VkDescriptorSet, Globals::MAX_FRAMES_IN_FLIGHT> descriptorSets;
+    };
+    Descriptor cameraDescriptors{};
+
     static constexpr VkDeviceSize payloadSize = sizeof(Payload);
 
-    Camera(Device& device, Window& window);
-    virtual ~Camera()             = default;
+    Camera(Device& device, Window& window, DescriptorSetsManager& descriptorSetManager);
+    virtual ~Camera();
     Camera(const Camera&)         = delete;
     void operator=(const Camera&) = delete;
     Camera(Camera&&)              = delete;

@@ -12,6 +12,7 @@
 #include "Texture\TextureManager.h"
 #include "Material/MaterialManager.h"
 #include "Model/ModelManager.h"
+#include "Lighting/LightManager.h"
 
 class Renderer
 {
@@ -34,22 +35,13 @@ private:
     std::vector<VkFramebuffer> mainPassFramebuffers;
     AllocatedImage             mainDepthImage;
 
-    // Depth Pass
-    struct ShadowMap
-    {
-        VkFramebuffer  framebuffer;
-        AllocatedImage image;
-    };
-    std::vector<ShadowMap> shadowMaps;
-
     void recreateSwapchain();
 
     void createPipelines();
     void createPipelineLayouts();
 
     void createMainDepthResources();
-    void createMainFramebuffers();
-    void createShadowFramebuffers();
+    void createShadowResources();
 
     void createCommandBuffers();
     void recordCommandBuffer(int imageIndex, const Scene& scene);
@@ -60,6 +52,7 @@ public:
     TextureManager        textureManager;
     MaterialManager       materialManager;
     ModelManager          modelManager;
+    LightManager          lightsManager;
 
     Renderer(Device& device, Window& window);
     ~Renderer();

@@ -7,12 +7,6 @@ layout(location = 3) in vec3 aTangent;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(set = 1, binding = 0) uniform sampler2D albedo0;
-layout(set = 1, binding = 1) uniform sampler2D ao0;
-layout(set = 1, binding = 2) uniform sampler2D metallicRoughness0;
-layout(set = 1, binding = 3) uniform sampler2D normal0;
-layout(set = 1, binding = 4) uniform sampler2D displacement0;
-
 layout(set = 0, binding = 0) uniform CameraBuffer
 {
     mat4 proj;
@@ -20,6 +14,24 @@ layout(set = 0, binding = 0) uniform CameraBuffer
     vec3 camPos;
 }
 cameraData;
+
+layout(set = 1, binding = 0) uniform sampler2D albedo0;
+layout(set = 1, binding = 1) uniform sampler2D ao0;
+layout(set = 1, binding = 2) uniform sampler2D metallicRoughness0;
+layout(set = 1, binding = 3) uniform sampler2D normal0;
+layout(set = 1, binding = 4) uniform sampler2D displacement0;
+
+#define MAX_DIR_LIGHTS 8
+layout(set = 2, binding = 0) uniform DirLightsBlock
+{
+    vec4  dirLightDirection[MAX_DIR_LIGHTS];
+    vec4  dirLightColor[MAX_DIR_LIGHTS];
+    mat4  dirShadowMatrix[MAX_DIR_LIGHTS];
+    ivec4 dirLayerIndex[MAX_DIR_LIGHTS];
+    int   numDirLights;
+};
+layout(set = 2, binding = 1) uniform sampler2DArray dirShadowMaps;
+// usage: dirLightDirection[i].xyz, dirLayerIndex[i].x
 
 #define PI 3.14159265359
 
@@ -130,17 +142,56 @@ vec3 Fr(vec3 crntAlbedoColor, float crntRoughness, float crntMetalic, vec3 F0, v
     return kd * Flambert + cookTorrance;
 }
 
+vec3 direcLight(int i, vec3 lightDir, vec3 N)
+{
+    vec4  fragPosLight = dirShadowMatrix[i] * vec4(aCrntPos, 1.0);
+    float shadow       = 0.0f;
+    vec3  lightCoords  = fragPosLight.xyz / fragPosLight.w;
+    if (lightCoords.z <= 1.0f)
+    {
+        lightCoords        = (lightCoords + 1.0f) / 2.0f;  // [-1, 1] range to [0, 1]
+        float currentDepth = lightCoords.z;
+        float bias         = max(0.0025f * (1.0f - dot(N, normalize(lightDir))), 0.0005f);
+
+        int  sampleRadius = 2;
+        vec2 pixelSize    = 1.0 / textureSize(dirShadowMaps, 0).xy;
+        for (int y = -sampleRadius; y <= sampleRadius; y++)
+        {
+            for (int x = -sampleRadius; x <= sampleRadius; x++)
+            {
+                float closestDepth = texture(dirShadowMaps, vec3(lightCoords.xy + vec2(x, y) * pixelSize, float(dirLayerIndex[i].x))).r;
+                if (currentDepth > closestDepth + bias)
+                    shadow += 1.0f;
+            }
+        }
+        shadow /= pow((sampleRadius * 2 + 1), 2);
+    }
+
+    return (1.0f - shadow) * dirLightColor[i].xyz;
+    // return vec4(vec3(shadow), 1.0f);  // for debugging shadows (shows shadow regions in white)
+}
+
 void main()
 {
-    vec3 N      = normalize(aNormal);
-    vec3 T      = normalize(aTangent - N * dot(aTangent, N));
-    vec3 B      = cross(T, N);
-    mat3 TBN    = mat3(T, B, N);
-    vec3 mapped = texture(normal0, aTex).rgb * 2.0f - 1.0f;
+    vec3        sum           = vec3(0.0f);  // PBR sum
+    const vec2  UVs           = getUVs();    // world space UVs
+    const vec4  crntAlbedo    = texture(albedo0, UVs);
+    const float crntMetalic   = texture(metallicRoughness0, UVs).b;
+    const float crntRoughness = texture(metallicRoughness0, UVs).g;
 
-    const vec3 Norm = normalize(TBN * mapped);
-    // FragColor      = vec4(aTangent * 0.5 + 0.5, 1.0);
-    // FragColor = vec4(Norm, 1.0f);
+    const vec3 N        = getNormal(UVs);                           // normal
+    const vec3 Wo       = normalize(cameraData.camPos - aCrntPos);  // view dir
+    vec3       F0       = vec3(0.04);
+    F0                  = mix(F0, crntAlbedo.xyz, crntMetalic);
+    const float ao      = texture(ao0, UVs).r;  // ambient occlusion
+    vec3        ambient = vec3(ao);             // for now no IBL
 
-    FragColor = vec4(texture(albedo0, aTex));
+    for (int i = 0; i < numDirLights; i++)
+    {
+        const vec3 Wi      = normalize(-dirLightDirection[i].xyz);  // light dir
+        const vec3 HalfWay = normalize(Wi + Wo);
+        sum += Fr(crntAlbedo.xyz, crntRoughness, crntMetalic, F0, Wo, Wi, N, HalfWay) * direcLight(i, Wi, N) * max(dot(N, Wi), 0.0);
+    }
+
+    FragColor = vec4(sum, 1.0f);
 }

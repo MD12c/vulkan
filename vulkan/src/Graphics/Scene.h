@@ -2,10 +2,11 @@
 #define SCENE_CLASS_H
 
 #include <memory>
+#include <vector>
 // #include <array>
 
 // #include "glm/glm.hpp"
-#include "Texture\Texture.h"
+#include "Lighting/DirectionLight.h"
 #include "vkBackend\Device.h"
 #include "Window.h"
 
@@ -15,19 +16,17 @@ class Camera;
 
 class Scene
 {
-private:
-    Device& device;
-
 public:
-    std::vector<Model>       models;
-    std::unique_ptr<Camera>  camera;
-    std::shared_ptr<Texture> tex;
+    std::vector<Model>          models;
+    std::unique_ptr<Camera>     camera;
+    std::vector<DirectionLight> directionLights;  // TODO make array
 
-    Scene(Device& device);
+    Scene();
     ~Scene();
 
     void loadModels(Renderer& renderer);
-    void loadCamera(Device& device, Window& window);
+    void loadCamera(Device& device, Window& window, Renderer& renderer);
+    void loadLights(Renderer& renderer);
 };
 
 #endif

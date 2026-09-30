@@ -5,6 +5,8 @@
 #include <cassert>
 #include <array>
 
+#include "Lighting/LightManager.h"
+#include "Lighting/ShadowMapDimensions.h"
 #include "Material/MaterialManager.h"
 #include "Model/Mesh.h"
 #include "Model/ModelManager.h"
@@ -22,13 +24,12 @@ Renderer::Renderer(Device& device, Window& window)
       descriptorSetsManager(device),
       textureManager(device, descriptorSetsManager),
       materialManager(device, textureManager, descriptorSetsManager),
-      modelManager(device, materialManager)
+      modelManager(device, materialManager),
+      lightsManager(device, device.getDepthFormat(), renderPassManager.getShadowRenderPass(), descriptorSetsManager)
 {
     createPipelineLayouts();
     recreateSwapchain();
     createMainDepthResources();
-    createMainFramebuffers();
-    createShadowFramebuffers();
     createCommandBuffers();
 }
 
@@ -40,15 +41,6 @@ Renderer::~Renderer()
 
     vkDestroyImageView(device.device(), mainDepthImage.imageView, nullptr);
     vmaDestroyImage(device.getVMA(), mainDepthImage.image, mainDepthImage.allocation);
-
-    for (auto& shadowMap : shadowMaps)
-    {
-        vkDestroyImageView(device.device(), shadowMap.image.imageView, nullptr);
-        vmaDestroyImage(device.getVMA(), shadowMap.image.image, shadowMap.image.allocation);
-    }
-
-    for (auto shadowMap : shadowMaps)
-        vkDestroyFramebuffer(device.device(), shadowMap.framebuffer, nullptr);
 
     for (auto framebuffer : mainPassFramebuffers)
         vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
@@ -64,7 +56,7 @@ void Renderer::drawFrame(const Scene& scene)
         return;
     }
 
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    if (result && result != VK_SUBOPTIMAL_KHR)
         throw std::runtime_error("[ERROR] failed to aquire swapchain->image");
 
     recordCommandBuffer(imageIndex, scene);
@@ -75,23 +67,58 @@ void Renderer::drawFrame(const Scene& scene)
         recreateSwapchain();
         return;
     }
-    if (result != VK_SUCCESS)
+    if (result)
         throw std::runtime_error("[ERROR] failed to present swapchain->image");
 }
 
 void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
 {
-    static uint32_t currentFrame = 0;
+    uint32_t currentFrame = static_cast<uint32_t>(swapchain->getCrntFrame());
 
-    {
+    {  // Begin command buffer
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
+        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo))
             throw std::runtime_error("[ERROR] failed to begin recording command buffer");
     }
+    {  // Begin shadow pass
+        VkClearValue clearValues{};
+        clearValues.depthStencil.depth   = 1.0f;
+        clearValues.depthStencil.stencil = 0;
 
-    {
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass        = renderPassManager.getShadowRenderPass();
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = { ShadowMapDimensions::SHADOW_MAP_WIDTH, ShadowMapDimensions::SHADOW_MAP_HEIGHT };
+        renderPassInfo.clearValueCount   = 1;
+        renderPassInfo.pClearValues      = &clearValues;
+
+        VkViewport viewport{};
+        viewport.x        = 0.0f;
+        viewport.y        = 0.0f;
+        viewport.width    = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_WIDTH);
+        viewport.height   = static_cast<float>(ShadowMapDimensions::SHADOW_MAP_HEIGHT);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        VkRect2D scissor{ { 0, 0 }, { ShadowMapDimensions::SHADOW_MAP_WIDTH, ShadowMapDimensions::SHADOW_MAP_HEIGHT } };
+        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+
+        for (const auto& dirLight : scene.directionLights)
+        {
+            renderPassInfo.framebuffer = lightsManager.dir.framebuffers[dirLight.layerIndex];
+            vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            shadowPipeline->Bind(commandBuffers[imageIndex]);
+
+            for (const auto& model : scene.models)
+                model.DrawShadow(commandBuffers[imageIndex], pipelineLayoutDepth2D, dirLight, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
+
+            vkCmdEndRenderPass(commandBuffers[imageIndex]);
+        }
+    }
+    {  // Begin main render pass
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color                = { { windowRGB[0], windowRGB[1], windowRGB[2], 1.0f } };
         clearValues[1].depthStencil.depth   = 1.0f;
@@ -106,10 +133,6 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         renderPassInfo.clearValueCount   = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues      = clearValues.data();
 
-        vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
-    {
         VkViewport viewport{};
         viewport.x        = 0.0f;
         viewport.y        = 0.0f;
@@ -120,70 +143,64 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         VkRect2D scissor{ { 0, 0 }, swapchain->getSwapChainExtent() };
         vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
         vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
-    }
 
-    {
+        vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
         mainPipeline->Bind(commandBuffers[imageIndex]);
-        vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 0, 1, &descriptorSetsManager.bufferDescriptors[0].descriptorSets[currentFrame], 0, nullptr);
-        scene.camera->updateUniforms(descriptorSetsManager.bufferDescriptors[0].Buffers[currentFrame].allocation);
+        vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 0, 1, &scene.camera->cameraDescriptors.descriptorSets[currentFrame], 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayoutDefault, 2, 1, &lightsManager.dir.descriptorSets[currentFrame], 0, nullptr);
+        scene.camera->updateUniforms(scene.camera->cameraDescriptors.buffers[currentFrame].allocation);
+        lightsManager.ExportUniformsTo(currentFrame, scene.directionLights);
 
         for (const auto& model : scene.models)
             model.Draw(commandBuffers[imageIndex], pipelineLayoutDefault, materialManager, Transform({ {}, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.02f) }));
 
         vkCmdEndRenderPass(commandBuffers[imageIndex]);
-
-        if (vkEndCommandBuffer(commandBuffers[imageIndex]))
-            throw std::runtime_error("[ERROR] failed to record command buffers");
     }
-
-    currentFrame = (currentFrame + 1) % Globals::MAX_FRAMES_IN_FLIGHT;
+    if (vkEndCommandBuffer(commandBuffers[imageIndex]))
+        throw std::runtime_error("[ERROR] failed to record command buffers");
 }
 
 void Renderer::createPipelineLayouts()
 {
-    {
+    {  // main pipeline layout
         VkPushConstantRange pushConstantRangeInfo{};
         pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRangeInfo.offset     = 0;
-        pushConstantRangeInfo.size       = sizeof(Model::PushConst);
+        pushConstantRangeInfo.size       = sizeof(Model::PushConstModel);
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount         = 2;  // descriptors
+        pipelineLayoutInfo.setLayoutCount         = 3;  // descriptors
         pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
         pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
 
-        VkDescriptorSetLayout setLayouts[2] = { descriptorSetsManager.getGlobalSetLayouts(), descriptorSetsManager.getTextureSetLayout() };
+        VkDescriptorSetLayout setLayouts[3] = { descriptorSetsManager.getGlobalSetLayout(), descriptorSetsManager.getTextureSetLayout(), descriptorSetsManager.getShadowSetLayout() };
         pipelineLayoutInfo.pSetLayouts      = setLayouts;
 
-        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDefault) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDefault))
             throw std::runtime_error("[ERROR] failed to create pipeline layout Default");
     }
-
-    {
+    {  // shadow pipeline layout
         VkPushConstantRange pushConstantRangeInfo{};
-        pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRangeInfo.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRangeInfo.offset     = 0;
-        pushConstantRangeInfo.size       = sizeof(Model::PushConst);
+        pushConstantRangeInfo.size       = sizeof(ShadowMapDimensions::Shadow2DPushConst);
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount         = 2;  // descriptors
-        pipelineLayoutInfo.pushConstantRangeCount = 1;  // pushconstants
+        pipelineLayoutInfo.setLayoutCount         = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
         pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRangeInfo;
 
-        VkDescriptorSetLayout setLayouts[2] = { descriptorSetsManager.getGlobalSetLayouts(), descriptorSetsManager.getTextureSetLayout() };
-        pipelineLayoutInfo.pSetLayouts      = setLayouts;
-
-        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDepth2D) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayoutDepth2D))
             throw std::runtime_error("[ERROR] failed to create pipeline layout Depth2D");
     }
 }
 
 void Renderer::createPipelines()
 {
-    assert(swapchain != nullptr && "Cannot create pipeline before swap chain");
-    {
+    {  // main pipeline creation
         assert(pipelineLayoutDefault != nullptr && "Cannot create pipeline before pipeline layout");
         renderPassManager.createMainRenderPassLayout(*swapchain);
 
@@ -195,43 +212,39 @@ void Renderer::createPipelines()
         pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
         mainPipeline                         = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/default.vert.spv", "Assets/Shaders/default.frag.spv");
     }
+    {  // shadow pipeline creation
+        assert(pipelineLayoutDepth2D != nullptr && "Cannot create pipeline before pipeline layout");
+        renderPassManager.createShadowRenderPassLayout();
 
-    // {
-    //     assert(pipelineLayoutDepth2D != nullptr && "Cannot create pipeline before pipeline layout");
-
-    //     PipelineConfigInfo pipelineConfig{};
-    //     Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-    //     pipelineConfig.renderPass            = renderPassManager.getShadowRenderPass();
-    //     pipelineConfig.pipelineLayout        = pipelineLayoutDepth2D;
-    //     pipelineConfig.bindingDescriptions   = Vertex::getBindingDescriptions();
-    //     pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
-    //     shadowPipeline                       = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
-    // }
+        PipelineConfigInfo pipelineConfig{};
+        Pipeline::defaultPipelineConfigInfo(pipelineConfig);
+        pipelineConfig.renderPass            = renderPassManager.getShadowRenderPass();
+        pipelineConfig.pipelineLayout        = pipelineLayoutDepth2D;
+        pipelineConfig.bindingDescriptions   = Vertex::getBindingDescriptions();
+        pipelineConfig.attributeDescriptions = Vertex::getAttributeDescriptions();
+        shadowPipeline                       = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
+    }
 }
 
 void Renderer::createCommandBuffers()
 {
     commandBuffers.resize(swapchain->getMainImageCount());
+
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandPool        = device.getCommandPool();
     allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-    if (vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()))
         throw std::runtime_error("[ERROR] failed to allocate command buffers");
 }
 
-/// @brief Creates `depthImageViews` vector with all the memory allocations
-///
-/// 1. Create multiple `VkImage`
-///
-/// 2. Create multiple `VkImageView` from (1.)
 void Renderer::createMainDepthResources()
 {
-    VkFormat depthFormat = swapchain->getDepthFormat();
+    VkFormat depthFormat = device.getDepthFormat();
 
-    {
+    {  // Depth image creation
         VkImageCreateInfo imageInfo{};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType     = VK_IMAGE_TYPE_2D;
@@ -251,12 +264,10 @@ void Renderer::createMainDepthResources()
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage         = VMA_MEMORY_USAGE_AUTO;
         allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        // allocInfo.flags         = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
         device.createImageWithInfo(imageInfo, allocInfo, mainDepthImage);
     }
-
-    {
+    {  // Depth image view creation
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = mainDepthImage.image;
@@ -268,51 +279,28 @@ void Renderer::createMainDepthResources()
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
 
-        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &mainDepthImage.imageView) != VK_SUCCESS)
+        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &mainDepthImage.imageView))
             throw std::runtime_error("failed to create texture image view!");
     }
-}
+    {  // Depth image framebuffer creation
+        const size_t imageCount = swapchain->getMainImageCount();
+        mainPassFramebuffers.resize(imageCount);
+        for (size_t i = 0; i < imageCount; i++)
+        {
+            std::array<VkImageView, 2> attachments = { swapchain->getMainColorImageView(i), mainDepthImage.imageView };
 
-/// @brief create `VkFramebuffer` objects
-void Renderer::createMainFramebuffers()
-{
-    const size_t imageCount = swapchain->getMainImageCount();
-    mainPassFramebuffers.resize(imageCount);
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass      = renderPassManager.getMainRenderPass();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments    = attachments.data();
+            framebufferInfo.width           = swapchain->getSwapChainExtent().width;
+            framebufferInfo.height          = swapchain->getSwapChainExtent().height;
+            framebufferInfo.layers          = 1;
 
-    for (size_t i = 0; i < imageCount; i++)
-    {
-        std::array<VkImageView, 2> attachments = { swapchain->getMainColorImageView(i), mainDepthImage.imageView };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass      = renderPassManager.getMainRenderPass();
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments    = attachments.data();
-        framebufferInfo.width           = swapchain->getSwapChainExtent().width;
-        framebufferInfo.height          = swapchain->getSwapChainExtent().height;
-        framebufferInfo.layers          = 1;
-
-        if (vkCreateFramebuffer(device.device(), &framebufferInfo, nullptr, &mainPassFramebuffers[i]) != VK_SUCCESS)
-            throw std::runtime_error("failed to create framebuffer!");
-    }
-}
-
-/// @brief create `VkFramebuffer` objects
-void Renderer::createShadowFramebuffers()
-{
-    for (auto& shadowMap : shadowMaps)
-    {
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass      = renderPassManager.getShadowRenderPass();
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments    = &shadowMap.image.imageView;
-        framebufferInfo.width           = swapchain->getSwapChainExtent().width;
-        framebufferInfo.height          = swapchain->getSwapChainExtent().height;
-        framebufferInfo.layers          = 1;
-
-        if (vkCreateFramebuffer(device.device(), &framebufferInfo, nullptr, &shadowMap.framebuffer) != VK_SUCCESS)
-            throw std::runtime_error("failed to create framebuffer!");
+            if (vkCreateFramebuffer(device.device(), &framebufferInfo, nullptr, &mainPassFramebuffers[i]))
+                throw std::runtime_error("failed to create framebuffer!");
+        }
     }
 }
 

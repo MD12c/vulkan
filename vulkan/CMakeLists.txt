@@ -52,6 +52,13 @@ set(MATERIAL_SOURCES
     src/Graphics/Material/PBRMaterial.h
 )
 
+set(LIGHT_SOURCES  
+    src/Graphics/Lighting/ShadowMapDimensions.h
+    src/Graphics/Lighting/DirectionLight.h
+    src/Graphics/Lighting/LightManager.h
+    src/Graphics/Lighting/LightManager.cpp
+)
+
 set(CAMERA_SOURCES
     src/Graphics/Cameras/Camera.h
     src/Graphics/Cameras/Camera.cpp
@@ -70,6 +77,7 @@ add_executable(
   ${CAMERA_SOURCES}
   ${TEXTURE_SOURCES}
   ${MATERIAL_SOURCES}
+  ${LIGHT_SOURCES}
 )
 # cmake-format: on
 

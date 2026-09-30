@@ -2,8 +2,8 @@
 
 #include "../Window.h"
 
-CameraFly::CameraFly(Device& device, Window& window, float FOVdeg, float nearPlane, float farPlane)
-    : Camera(device, window),
+CameraFly::CameraFly(Device& device, Window& window, DescriptorSetsManager& descriptorSetManager, float FOVdeg, float nearPlane, float farPlane)
+    : Camera(device, window, descriptorSetManager),
       FOVdeg(FOVdeg),
       nearPlane(nearPlane),
       farPlane(farPlane)

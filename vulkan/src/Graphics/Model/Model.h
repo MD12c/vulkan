@@ -11,6 +11,7 @@
 #include "Mesh.h"
 #include "Transform.h"
 #include "../Material/MaterialManager.h"
+#include "../Lighting/DirectionLight.h"
 
 using ModelID = uint32_t;
 
@@ -22,7 +23,7 @@ public:
     std::string directory;
     std::string fileType;
 
-    struct PushConst
+    struct PushConstModel
     {
         glm::mat4 model;
         glm::mat4 normal;
@@ -36,6 +37,7 @@ public:
     Model& operator=(Model&& other) = delete;
 
     void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, MaterialManager& materialManager, Transform transform) const;
+    void DrawShadow(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const DirectionLight& dirLigth, Transform transform) const; // TODO make an interface for lights
 
     // void setMeshMetalicRoughness(int meshIndex, float metalic, float roughness);
     // void setCustomMaterial(MaterialID materialID);

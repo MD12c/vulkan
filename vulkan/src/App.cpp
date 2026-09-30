@@ -1,4 +1,5 @@
 #include "App.h"
+#include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -9,10 +10,11 @@ App::App()
     : window(width, height, name),
       device(window),
       renderer(device, window),
-      scene(device)
+      scene()
 {
-    scene.loadCamera(device, window);
+    scene.loadCamera(device, window, renderer);
     scene.loadModels(renderer);
+    scene.loadLights(renderer);
 }
 
 App::~App()
@@ -30,6 +32,11 @@ void App::Update()
     {
         timePrev = timeCrnt;
         scene.camera->Inputs();
+        if (glfwGetKey(window.getWindow(), GLFW_KEY_B) == GLFW_PRESS)
+        {
+            scene.directionLights[0].setPosition(scene.camera->Position);
+            scene.directionLights[0].setDirection(scene.camera->Orientation);
+        }
     }
 }
 

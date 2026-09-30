@@ -299,24 +299,6 @@ void SwapChain::createImageViews()
     }
 }
 
-/// @brief creates a `VkRenderPass` object from a specified `RenderPassConfigInfo`
-void SwapChain::createRenderPass(VkRenderPass& renderPass, RenderPassConfigInfo& renderPassConfigInfo)
-{
-    std::vector<VkAttachmentDescription> attachmentDescription = renderPassConfigInfo.groupAttachments();
-
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(renderPassConfigInfo.attachments.size());
-    renderPassInfo.pAttachments    = attachmentDescription.data();
-    renderPassInfo.subpassCount    = static_cast<uint32_t>(renderPassConfigInfo.subpasses.size());
-    renderPassInfo.pSubpasses      = renderPassConfigInfo.subpasses.data();
-    renderPassInfo.dependencyCount = static_cast<uint32_t>(renderPassConfigInfo.dependencies.size());
-    renderPassInfo.pDependencies   = renderPassConfigInfo.dependencies.data();
-
-    if (vkCreateRenderPass(device.device(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
-        throw std::runtime_error("failed to create render pass!");
-}
-
 void SwapChain::createSyncObjects()
 {
     imageAvailableSemaphores.resize(Globals::MAX_FRAMES_IN_FLIGHT);  // Rendering into this image is done, safe to present
