@@ -85,10 +85,6 @@ void Mesh::Draw(VkCommandBuffer commandBuffer, glm::mat4 model, glm::mat3 normal
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 }
 
-void Mesh::DrawSimple() const
-{  // TODO
-}
-
 std::vector<VkVertexInputBindingDescription> Vertex::getBindingDescriptions()
 {
     return { { 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX } };

@@ -1,6 +1,8 @@
 #include "Scene.h"
-#include <glm/ext/vector_float3.hpp>
+
 #include <memory>
+
+#include <glm/ext/vector_float3.hpp>
 
 #include "Cameras/Fly.h"
 #include "Lighting/DirectionLight.h"

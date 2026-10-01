@@ -41,12 +41,14 @@ struct AllocatedImage
 class Device
 {
 private:
-    VkInstance               instance;
-    VmaAllocator             vmallocator;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE;
-    Window&                  window;
-    VkCommandPool            commandPool;
+    Window& window;
+
+    VkInstance                 instance       = VK_NULL_HANDLE;
+    VmaAllocator               vmallocator    = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT   debugMessenger = VK_NULL_HANDLE;
+    VkPhysicalDevice           physicalDevice = VK_NULL_HANDLE;
+    VkCommandPool              commandPool    = VK_NULL_HANDLE;
+    VkPhysicalDeviceProperties properties;
 
     VkDevice     device_;
     VkSurfaceKHR surface_;
@@ -88,24 +90,23 @@ public:
     Device& operator=(Device&&)   = delete;
 
     // clang-format off
-    VkCommandPool getCommandPool() const { return commandPool; }
-    VkDevice      device()         const { return device_; }
-    VkSurfaceKHR  surface()        const { return surface_; }
-    VkQueue       graphicsQueue()  const { return graphicsQueue_; }
-    VkQueue       presentQueue()   const { return presentQueue_; }
+    VkCommandPool              getCommandPool()              const { return commandPool; }
+    VkDevice                   device()                      const { return device_; }
+    VkSurfaceKHR               surface()                     const { return surface_; }
+    VkQueue                    graphicsQueue()               const { return graphicsQueue_; }
+    VkQueue                    presentQueue()                const { return presentQueue_; }
+    VmaAllocator               getVMA()                      const { return vmallocator; }
+    VkPhysicalDeviceProperties getPhysicalDevicePropreties() const { return properties; }
     // clang-format on
 
-    // TODO reorganize this mess of random functions
-    SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }  // return querySwapChainSupport(physicalDevice);
+    SwapChainSupportDetails findSwapChainSupport() { return querySwapChainSupport(physicalDevice); }  // return querySwapChainSupport(physicalDevice);
     uint32_t                findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     QueueFamilyIndices      findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }  // return findQueueFamilies(physicalDevice);
     VkFormat                findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    VmaAllocator            getVMA() const { return vmallocator; }
-    VkPhysicalDevice        getPhysicalDevice() const { return physicalDevice; }
-    VkSurfaceFormatKHR      getSwapSurfaceFormat();
-    VkFormat                getDepthFormat() const { return findSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-                                                                                VK_IMAGE_TILING_OPTIMAL,
-                                                                                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT); }
+    VkSurfaceFormatKHR      findSwapSurfaceFormat();
+    VkFormat                findDepthFormat() const { return findSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+                                                                                 VK_IMAGE_TILING_OPTIMAL,
+                                                                                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT); }
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags bufferUsage, VmaAllocationCreateInfo allocUsage, AllocatedBuffer& buffer);
     void createImageWithInfo(const VkImageCreateInfo& imageInfo, VmaAllocationCreateInfo allocInfo, AllocatedImage& image);
@@ -115,8 +116,6 @@ public:
     void            copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void            copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
     void            transitionImageLayout(VkImage image, VkImageSubresourceRange range, VkImageLayout oldLayout, VkImageLayout newLayout);
-
-    VkPhysicalDeviceProperties properties;
 };
 
 #endif

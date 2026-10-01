@@ -478,9 +478,9 @@ SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
 /// Otherwise default to the first format available
 /// @param availableFormats list of { VkFormat and VkColorSpaceKHR }
 /// @return Format that is available if not the one desired
-VkSurfaceFormatKHR Device::getSwapSurfaceFormat()
+VkSurfaceFormatKHR Device::findSwapSurfaceFormat()
 {
-    SwapChainSupportDetails supportDetails = getSwapChainSupport();
+    SwapChainSupportDetails supportDetails = findSwapChainSupport();
 
     for (const auto& availableFormat : supportDetails.formats)
     {

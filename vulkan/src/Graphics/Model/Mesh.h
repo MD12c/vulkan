@@ -47,7 +47,6 @@ public:
     Mesh& operator=(Mesh&& other) noexcept = delete;
 
     void Draw(VkCommandBuffer commandBuffer, glm::mat4 model = glm::mat4(1.0f), glm::mat3 normal = glm::mat3(1.0f)) const;
-    void DrawSimple() const;
 
     static std::vector<uint32_t> makeVecIndex(const uint32_t* array, size_t size);
     static std::vector<Vertex>   makeVecVertex(const float* array, size_t size);

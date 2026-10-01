@@ -5,7 +5,6 @@
 #include <vector>
 // #include <array>
 
-// #include "glm/glm.hpp"
 #include "Lighting/DirectionLight.h"
 #include "vkBackend\Device.h"
 #include "Window.h"
@@ -19,7 +18,7 @@ class Scene
 public:
     std::vector<Model>          models;
     std::unique_ptr<Camera>     camera;
-    std::vector<DirectionLight> directionLights;  // TODO make array
+    std::vector<DirectionLight> directionLights;
 
     Scene();
     ~Scene();

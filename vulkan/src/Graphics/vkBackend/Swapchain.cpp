@@ -159,9 +159,9 @@ VkResult SwapChain::submitCommandBuffers(const VkCommandBuffer* buffers, uint32_
 /// 5. Query `vkGetSwapchainImagesKHR()` to get num of images and populate swapChainImages vector
 void SwapChain::createSwapChain()
 {
-    SwapChainSupportDetails swapChainSupport = device.getSwapChainSupport();
+    SwapChainSupportDetails swapChainSupport = device.findSwapChainSupport();
 
-    VkSurfaceFormatKHR surfaceFormat = device.getSwapSurfaceFormat();
+    VkSurfaceFormatKHR surfaceFormat = device.findSwapSurfaceFormat();
     VkPresentModeKHR   presentMode   = chooseSwapPresentMode(swapChainSupport.presentModes);
     swapChainExtent                  = chooseSwapExtent(swapChainSupport.capabilities);
 
@@ -268,7 +268,7 @@ void SwapChain::createImageViews()
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = mainColorImages[i];
         viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format                          = device.getSwapSurfaceFormat().format;
+        viewInfo.format                          = device.findSwapSurfaceFormat().format;
         viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         viewInfo.subresourceRange.baseMipLevel   = 0;
         viewInfo.subresourceRange.levelCount     = 1;

@@ -44,7 +44,7 @@ void RenderPassManager::recreateMainRenderPassLayout()
 
     {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format         = device.getSwapSurfaceFormat().format;
+        colorAttachment.format         = device.findSwapSurfaceFormat().format;
         colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;             // No MSAA
         colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;       // Clears color at start
         colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;      // Save color at end, VK_ATTACHMENT_STORE_OP_DONT_CARE makes cool glitch effect
@@ -59,7 +59,7 @@ void RenderPassManager::recreateMainRenderPassLayout()
     }
     {
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format         = device.getDepthFormat();
+        depthAttachment.format         = device.findDepthFormat();
         depthAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;       // Clears depth at start
         depthAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE;  // Discards depth at end
@@ -101,7 +101,7 @@ void RenderPassManager::recreateShadowRenderPassLayout()
 
     {
         VkAttachmentDescription depthAttachment{};
-        depthAttachment.format         = device.getDepthFormat();
+        depthAttachment.format         = device.findDepthFormat();
         depthAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;               // Clears depth at start
         depthAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;              // Store depth at end for color pass

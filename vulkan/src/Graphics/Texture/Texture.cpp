@@ -88,8 +88,7 @@ Texture::Texture(Device& device, TextureType textureType, unsigned char* bytes, 
     vmaDestroyBuffer(device.getVMA(), tempImageBuffer.buffer, tempImageBuffer.allocation);
 
     {
-        VkPhysicalDeviceProperties props{};
-        vkGetPhysicalDeviceProperties(device.getPhysicalDevice(), &props);
+        VkPhysicalDeviceProperties props = device.getPhysicalDevicePropreties();
 
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

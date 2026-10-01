@@ -25,7 +25,7 @@ Renderer::Renderer(Device& device, Window& window)
       textureManager(device, descriptorSetsManager),
       materialManager(device, textureManager, descriptorSetsManager),
       modelManager(device, materialManager),
-      lightsManager(device, device.getDepthFormat(), renderPassManager.getShadowRenderPass(), descriptorSetsManager)
+      lightsManager(device, device.findDepthFormat(), renderPassManager.getShadowRenderPass(), descriptorSetsManager)
 {
     createPipelineLayouts();
     recreateSwapchain();
@@ -121,16 +121,18 @@ void Renderer::recordCommandBuffer(int imageIndex, const Scene& scene)
         renderPassInfo.clearValueCount   = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues      = clearValues.data();
 
-        VkViewport viewport{};
-        viewport.x        = 0.0f;
-        viewport.y        = 0.0f;
-        viewport.width    = static_cast<float>(swapchain->getSwapChainExtent().width);
-        viewport.height   = static_cast<float>(swapchain->getSwapChainExtent().height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        VkRect2D scissor{ { 0, 0 }, swapchain->getSwapChainExtent() };
-        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
-        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+        {  // dynamic vireport scissor
+            VkViewport viewport{};
+            viewport.x        = 0.0f;
+            viewport.y        = 0.0f;
+            viewport.width    = static_cast<float>(swapchain->getSwapChainExtent().width);
+            viewport.height   = static_cast<float>(swapchain->getSwapChainExtent().height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor{ { 0, 0 }, swapchain->getSwapChainExtent() };
+            vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+            vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+        }
 
         vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -244,7 +246,7 @@ void Renderer::createCommandBuffers()
 
 void Renderer::recreateMainDepthResources()
 {
-    VkFormat depthFormat = device.getDepthFormat();
+    VkFormat depthFormat = device.findDepthFormat();
 
     vkDestroyImageView(device.device(), mainDepthImage.imageView, nullptr);
     vmaDestroyImage(device.getVMA(), mainDepthImage.image, mainDepthImage.allocation);

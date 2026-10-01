@@ -10,7 +10,6 @@
 #include "Mesh.h"
 #include "Transform.h"
 #include "../Material/MaterialManager.h"
-#include "../Lighting/DirectionLight.h"
 
 using ModelID = uint32_t;
 
@@ -36,7 +35,16 @@ public:
     Model& operator=(Model&& other) = delete;
 
     void Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, MaterialManager& materialManager, Transform transform) const;
-    void DrawShadow(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const DirectionLight& dirLigth, Transform transform) const; // TODO make an interface for lights
+
+    template <class LightType>
+    void DrawShadow(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const LightType& ligth, Transform transform) const
+    {
+        for (const auto& mesh : meshes)
+        {
+            ligth.BeginDepthPass(commandBuffer, pipelineLayout, transform.model);
+            mesh.Draw(commandBuffer, transform.model, transform.normal);
+        }
+    }
 
     // void setMeshMetalicRoughness(int meshIndex, float metalic, float roughness);
     // void setCustomMaterial(MaterialID materialID);

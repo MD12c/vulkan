@@ -102,8 +102,7 @@ LightManager::LightManager(Device& device, VkFormat depthFormat, VkRenderPass re
         }
     }
     {  // image sampler
-        VkPhysicalDeviceProperties props{};
-        vkGetPhysicalDeviceProperties(device.getPhysicalDevice(), &props);
+        VkPhysicalDeviceProperties props = device.getPhysicalDevicePropreties();
 
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

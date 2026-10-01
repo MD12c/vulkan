@@ -25,12 +25,3 @@ void Model::Draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout,
         mesh.Draw(commandBuffer, transform.model, transform.normal);
     }
 }
-
-void Model::DrawShadow(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const DirectionLight& dirLigth, Transform transform) const
-{
-    for (const auto& mesh : meshes)
-    {
-        dirLigth.BeginDepthPass(commandBuffer, pipelineLayout, transform.model);
-        mesh.Draw(commandBuffer, transform.model, transform.normal);
-    }
-}
