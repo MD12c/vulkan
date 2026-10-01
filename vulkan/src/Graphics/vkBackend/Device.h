@@ -1,6 +1,7 @@
 #ifndef DEVICE_CLASS_H
 #define DEVICE_CLASS_H
 
+#include <vulkan/vulkan_core.h>
 #include <vector>
 
 #define GLFW_INCLUDE_VULKAN
@@ -26,15 +27,15 @@ struct QueueFamilyIndices
 
 struct AllocatedBuffer
 {
-    VkBuffer      buffer;
-    VmaAllocation allocation;
+    VkBuffer      buffer     = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
 struct AllocatedImage
 {
-    VkImage       image;
-    VkImageView   imageView;
-    VmaAllocation allocation;
+    VkImage       image      = VK_NULL_HANDLE;
+    VkImageView   imageView  = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
 class Device

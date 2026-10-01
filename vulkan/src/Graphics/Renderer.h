@@ -1,6 +1,7 @@
 #ifndef RENDERER_CLASS_H
 #define RENDERER_CLASS_H
 
+#include <vulkan/vulkan_core.h>
 #include "vkBackend/Device.h"
 #include "vkBackend/Pipeline.h"
 #include "vkBackend/Swapchain.h"
@@ -21,18 +22,19 @@ private:
         0.7f, 0.7f, 0.7f
     };
 
-    Device&                      device;
-    Window&                      window;
-    RenderPassManager            renderPassManager;
-    std::unique_ptr<SwapChain>   swapchain;
-    std::unique_ptr<Pipeline>    mainPipeline;
-    std::unique_ptr<Pipeline>    shadowPipeline;
-    VkPipelineLayout             pipelineLayoutDefault;
-    VkPipelineLayout             pipelineLayoutDepth2D;
-    std::vector<VkCommandBuffer> commandBuffers;
+    Device&                    device;
+    Window&                    window;
+    RenderPassManager          renderPassManager;
+    std::unique_ptr<SwapChain> swapchain;
+    std::unique_ptr<Pipeline>  mainPipeline;
+    std::unique_ptr<Pipeline>  shadowPipeline;
+    VkPipelineLayout           pipelineLayoutDefault;
+    VkPipelineLayout           pipelineLayoutDepth2D;
+
+    std::vector<VkCommandBuffer> commandBuffers = { VK_NULL_HANDLE };
 
     // Main Pass
-    std::vector<VkFramebuffer> mainPassFramebuffers;
+    std::vector<VkFramebuffer> mainPassFramebuffers = { VK_NULL_HANDLE };
     AllocatedImage             mainDepthImage;
 
     void recreateSwapchain();
@@ -40,7 +42,7 @@ private:
     void createPipelines();
     void createPipelineLayouts();
 
-    void createMainDepthResources();
+    void recreateMainDepthResources();
     void createShadowResources();
 
     void createCommandBuffers();

@@ -29,7 +29,6 @@ Renderer::Renderer(Device& device, Window& window)
 {
     createPipelineLayouts();
     recreateSwapchain();
-    createMainDepthResources();
     createCommandBuffers();
 }
 
@@ -222,6 +221,7 @@ void Renderer::createPipelines()
         pipelineConfig.attributeDescriptions   = Vertex::getAttributeDescriptions();
         pipelineConfig.dynamicStateEnables     = {};
         pipelineConfig.dynamicStateInfo        = {};
+        pipelineConfig.dynamicStateInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         pipelineConfig.viewportInfo.pViewports = &viewport;
         pipelineConfig.viewportInfo.pScissors  = &scissor;
         shadowPipeline                         = std::make_unique<Pipeline>(device, pipelineConfig, "Assets/Shaders/shadowMap2D.vert.spv", "Assets/Shaders/shadowMap2D.frag.spv");
@@ -242,9 +242,15 @@ void Renderer::createCommandBuffers()
         throw std::runtime_error("[ERROR] failed to allocate command buffers");
 }
 
-void Renderer::createMainDepthResources()
+void Renderer::recreateMainDepthResources()
 {
     VkFormat depthFormat = device.getDepthFormat();
+
+    vkDestroyImageView(device.device(), mainDepthImage.imageView, nullptr);
+    vmaDestroyImage(device.getVMA(), mainDepthImage.image, mainDepthImage.allocation);
+
+    for (auto framebuffer : mainPassFramebuffers)
+        vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
 
     {  // Depth image creation
         VkImageCreateInfo imageInfo{};
@@ -328,6 +334,7 @@ void Renderer::recreateSwapchain()
         }
     }
 
+    recreateMainDepthResources();
     createPipelines();
 }
 
